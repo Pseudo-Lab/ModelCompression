@@ -6,15 +6,15 @@
 ## Contributor
 
 - [송태엽 _Taeyup Song_](-) | [Github](-) | [LinkedIn](-) |
-- [선동진 _Taeyup Song_](-) | [Github](-) | [LinkedIn](-) |
-- [고동근 _Taeyup Song_](-) | [Github](-) | [LinkedIn](-) |
-- [이종호 _Taeyup Song_](-) | [Github](-) | [LinkedIn](-) |
-- [오대환 _Taeyup Song_](-) | [Github](-) | [LinkedIn](-) |
-- [장진우 _Taeyup Song_](-) | [Github](-) | [LinkedIn](-) |
-- [손인석 _Taeyup Song_](-) | [Github](-) | [LinkedIn](-) |
-- [박수범 _Taeyup Song_](-) | [Github](-) | [LinkedIn](-) |
-- [김용환 _Taeyup Song_](-) | [Github](-) | [LinkedIn](-) |
-- [김서영 _Taeyup Song_](-) | [Github](-) | [LinkedIn](-) |
-- [신세별 _Taeyup Song_](-) | [Github](-) | [LinkedIn](-) |
-- [박명규 _Taeyup Song_](-) | [Github](-) | [LinkedIn](-) |
-- [이은식 _Taeyup Song_](-) | [Github](-) | [LinkedIn](-) |
+- [선동진 _Dongjin Sun_](-) | [Github](-) | [LinkedIn](-) |
+- [고동근 _Donggeun Ko_](-) | [Github](-) | [LinkedIn](-) |
+- [이종호](-) | [Github](-) | [LinkedIn](-) |
+- [오대환 _Daehwan Oh](-) | [Github](-) | [LinkedIn](-) |
+- [장진우](-) | [Github](-) | [LinkedIn](-) |
+- [손인석](-) | [Github](-) | [LinkedIn](-) |
+- [박수범 _Subeom Park_](-) | [Github](-) | [LinkedIn](-) |
+- [김용환](-) | [Github](-) | [LinkedIn](-) |
+- [김서영](-) | [Github](-) | [LinkedIn](-) |
+- [신세별](-) | [Github](-) | [LinkedIn](-) |
+- [박명규](-) | [Github](-) | [LinkedIn](-) |
+- [이은식 _Eunsik Lee_](-) | [Github](-) | [LinkedIn](-) |
