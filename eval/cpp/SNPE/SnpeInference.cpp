@@ -1,8 +1,3 @@
-//
-// Created by taeyup.song on 22. 7. 6.
-//
-
-
 #include "SnpeInference.h"
 
 #include "SNPE/SNPEBuilder.hpp"

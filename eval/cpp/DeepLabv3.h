@@ -15,40 +15,16 @@
 
 #if SNPE_RUNTIME
 #include "SNPE/SnpeInference.h"
-/*
 #elif TFLite_RUNTIME
-#include "../dnn/TFLite/TfLiteInference.h"
+#include "TFLite/TfLiteInference.h"
 #else
-#include "../dnn/OpenCV/DnnInference.h"
+#include "OpenCV/DnnInference.h"
 //*/
 #endif
 
-#if SNPE_RUNTIME
 class CDeepLabv3 : public CDnnInterpreter
-/*
-#elif TFLite_RUNTIME
-class CDeepLabv3 : public CTfLiteInference
-#else
-class CDeepLabv3 : public CDnnInference
-//*/
-#endif
 {
 public:
-/*
-#if SNPE_RUNTIME
-    //explicit CDeepLabv3();
-    CDeepLabv3(const std::string& strModelPath);
-
-
-#elif TFLite_RUNTIME
-    explicit CDeepLabv3();
-    explicit CDeepLabv3(const std::string& strModelPath);
-#else
-    explicit CDeepLabv3();
-    explicit CDeepLabv3(const std::string& strModelPath);
-
-#endif
-//*/
 	explicit CDeepLabv3();
 	explicit CDeepLabv3(const std::string& strModelPath);
     ~CDeepLabv3();

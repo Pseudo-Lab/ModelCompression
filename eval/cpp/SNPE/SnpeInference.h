@@ -1,9 +1,5 @@
-//
-// Created by taeyup.song on 22. 7. 6.
-//
-
-#ifndef SNPE_TEST_SNPEINFERENCE_H
-#define SNPE_TEST_SNPEINFERENCE_H
+#ifndef SNPEINFERENCE_H
+#define SNPEINFERENCE_H
 
 #include <iostream>
 #include <string>
@@ -85,5 +81,5 @@ private:
 
 };
 
-#endif //SNPE_TEST_SNPEINFERENCE_H
+#endif //SNPEINFERENCE_H
 

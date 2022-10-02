@@ -19,7 +19,7 @@ endif()
 
 # Set DNN Lib. Path
 set(SNPE_ROOT /media/Data/lib/snpe-1.66.0.3729/)
-#set(TFLITE_ROOT /media/Data/lib/tensorflow_src_rb5_r2.5)
+set(TFLITE_ROOT /media/Data/lib/tensorflow_src_rb5_r2.5)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -pedantic")
@@ -52,11 +52,6 @@ if (${BUILD_BOARD_MODE})
         ADD_LIBRARY(TFlite_LIB STATIC IMPORTED)
         SET_TARGET_PROPERTIES(TFlite_LIB PROPERTIES IMPORTED_LOCATION ${TFLITE_BUILD_ROOT}/gen/linux_aarch64/lib/libtensorflow-lite.a )
 
-        set(TFLITE_DELEGATE_ROOT ${TFLITE_ROOT}/bazel-bin/tensorflow/lite/delegates/)
-
-        set(RUNTIME_LIB_PACKAGE TFlite_LIB dl)
-        set(RUNTIME_SRC_PATH src/dnn/TFLite)
-
     elseif(${BUILD_SNPE_MODE})
         message(STATUS "Runtime: SNPE")
         add_compile_definitions(SNPE_RUNTIME)
@@ -64,11 +59,8 @@ if (${BUILD_BOARD_MODE})
         include_directories(${SNPE_ROOT}/include/zdl)
         link_directories(${SNPE_ROOT}/lib/aarch64-ubuntu-gcc7.5)
 
-        set(RUNTIME_LIB_PACKAGE SNPE)
-        set(RUNTIME_SRC_PATH src/dnn/SNPE)
     else()
         message(STATUS "Runtime: OpenCV")
-        set(RUNTIME_SRC_PATH src/dnn/OpenCV)
 
     endif()
 
@@ -93,8 +85,6 @@ else()
                 "${TENSORFLOW_SOURCE_DIR}/tensorflow/lite"
                 "${CMAKE_CURRENT_BINARY_DIR}/tensorflow-lite" EXCLUDE_FROM_ALL)
 
-        set(RUNTIME_LIB_PACKAGE tensorflow-lite)
-        set(RUNTIME_SRC_PATH src/dnn/TFLite)
 
     elseif(${BUILD_SNPE_MODE})
 
@@ -104,17 +94,22 @@ else()
         include_directories(${SNPE_ROOT}/include/zdl)
         link_directories(${SNPE_ROOT}/lib/x86_64-linux-clang)
 
-        set(RUNTIME_LIB_PACKAGE SNPE)
-        set(RUNTIME_SRC_PATH src/dnn/SNPE)
-
     else()
         message(STATUS "Runtime: OpenCV")
-        set(RUNTIME_SRC_PATH src/dnn/OpenCV)
     endif()
 
 endif()
 
-file(GLOB_RECURSE FACEDET_DIR CONFIGURE_DEPENDS src/face/*.cpp src/face/*.h)
+if (${BUILD_TFLITE_MODE})
+	set(RUNTIME_LIB_PACKAGE tensorflow-lite)
+	set(RUNTIME_SRC_PATH TFLite)
+elseif(${BUILD_SNPE_MODE})
+    set(RUNTIME_LIB_PACKAGE SNPE)
+    set(RUNTIME_SRC_PATH SNPE)
+else()
+    set(RUNTIME_SRC_PATH OpenCV)
+endif()
+
 file(GLOB_RECURSE RUNTIME_DIR CONFIGURE_DEPENDS ${RUNTIME_SRC_PATH}/*.cpp ${RUNTIME_SRC_PATH}/*.h)
 file(GLOB_RECURSE DNNCOMMON_DIR CONFIGURE_DEPENDS src/dnn/common/*.cpp src/dnn/common/*.h)
 
@@ -124,6 +119,6 @@ link_directories(${OPENCV_INSTALL_PATH}/lib)
 set(OPENCV_LIB_PACKAGE opencv_core opencv_highgui opencv_imgproc opencv_imgcodecs opencv_dnn opencv_videoio)
 
 #add_executable(DeepLabv3 ${FACEDET_DIR} ${RUNTIME_DIR} ${DNNCOMMON_DIR} src/main.cpp)
-add_executable(DeepLabv3 main.cpp SNPE/SnpeInference.cpp DeepLabv3.cpp)
+add_executable(DeepLabv3 main.cpp ${RUNTIME_DIR} DeepLabv3.cpp)
 target_link_libraries(DeepLabv3 rt ${OPENCV_LIB_PACKAGE} ${RUNTIME_LIB_PACKAGE})
 
