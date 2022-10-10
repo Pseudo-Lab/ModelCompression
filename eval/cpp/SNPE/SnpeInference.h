@@ -31,8 +31,8 @@ enum class BUFF_TYPE
 class CDnnInterpreter
 {
 public:
-    CDnnInterpreter(int inWidth, int inHeight, int inChannels, bool isQuantizeMode);
-    CDnnInterpreter(int inWidth, int inHeight, int inChannels, bool isQuantizeMode, cv::Scalar mean, double scale);
+    CDnnInterpreter(int inWidth, int inHeight, int inChannels);
+    CDnnInterpreter(int inWidth, int inHeight, int inChannels, cv::Scalar mean, double scale);
 
     virtual ~CDnnInterpreter();
 

@@ -7,7 +7,7 @@ endif()
 
 set(BUILD_BOARD_MODE 0)
 set(BUILD_TFLITE_MODE 0)
-set(BUILD_SNPE_MODE 1)
+set(BUILD_SNPE_MODE 0)
 
 # Set OpenCV Path
 if (${BUILD_BOARD_MODE})
@@ -111,7 +111,7 @@ else()
 endif()
 
 file(GLOB_RECURSE RUNTIME_DIR CONFIGURE_DEPENDS ${RUNTIME_SRC_PATH}/*.cpp ${RUNTIME_SRC_PATH}/*.h)
-file(GLOB_RECURSE DNNCOMMON_DIR CONFIGURE_DEPENDS src/dnn/common/*.cpp src/dnn/common/*.h)
+#file(GLOB_RECURSE DNNCOMMON_DIR CONFIGURE_DEPENDS src/dnn/common/*.cpp src/dnn/common/*.h)
 
 include_directories(${OPENCV_INSTALL_PATH}/include/opencv4)
 include_directories(${OPENCV_INSTALL_PATH}/include/opencv4/opencv2)

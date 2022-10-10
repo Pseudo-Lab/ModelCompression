@@ -1,7 +1,3 @@
-//
-// Created by taeyup.song on 22. 4. 28.
-//
-
 #include <numeric>
 #include <algorithm>
 #include <iostream>
@@ -9,11 +5,11 @@
 #include "DeepLabv3.h"
 
 #if SNPE_RUNTIME
-static const std::string MODEL_FILE = "../../../models/dlc/deeplabv3.dlc";
+static const std::string MODEL_FILE = "../../../models/dlc/deeplabv3_resnet50_coco-cd0a2569.dlc";
 #elif TFLite_RUNTIME
-static const std::string MODEL_FILE = "../res/deeplabv3.tflite";
+static const std::string MODEL_FILE = "../res/deeplabv3.tflite"; // TODO
 #else
-static const std::string MODEL_FILE = "../res/deeplabv3.onnx";
+static const std::string MODEL_FILE = "../../../models/tf/deeplabv3_mnv2_pascal_train_aug/optimized_graph.pb";
 #endif
 
 static constexpr int INPUT_WIDTH = 513;
@@ -24,51 +20,33 @@ static constexpr double DEEPLAB_SCALE = 0.007843;
 
 //*******************************************************************************************************
 
-#if SNPE_RUNTIME
-//*
 CDeepLabv3::CDeepLabv3() :
-        CDnnInterpreter(INPUT_WIDTH, INPUT_HEIGHT, INPUT_CH, false, cv::Scalar(27.5, 127.5, 127.5), DEEPLAB_SCALE)
+        CDnnInterpreter(INPUT_WIDTH, INPUT_HEIGHT, INPUT_CH, cv::Scalar(127.5, 127.5, 127.5), DEEPLAB_SCALE)
         , m_InferWidth(INPUT_WIDTH), m_InferHeight(INPUT_HEIGHT)
 {
     Init(MODEL_FILE);
-}//*/
+}
 
 CDeepLabv3::CDeepLabv3(const std::string& strModelPath) :
-        CDnnInterpreter(INPUT_WIDTH, INPUT_HEIGHT, INPUT_CH, false, cv::Scalar(27.5, 127.5, 127.5), DEEPLAB_SCALE)
+        CDnnInterpreter(INPUT_WIDTH, INPUT_HEIGHT, INPUT_CH, cv::Scalar(127.5, 127.5, 127.5), DEEPLAB_SCALE)
         , m_InferWidth(INPUT_WIDTH), m_InferHeight(INPUT_HEIGHT)
 {
     Init(strModelPath);
 }
-/*
-#elif TFLite_RUNTIME
-CCenterFace::CCenterFace() :
-        CTfLiteInference(cv::Scalar(0, 0, 0), 1.0), m_InferWidth(CENTERFACE_INPUT_WIDTH),
-        m_InferHeight(CENTERFACE_INPUT_HEIGHT)
-{
-    Init(CENTERFACE_MODEL_FILE);
-}
 
-CCenterFace::CCenterFace(const std::string& strModelPath) :
-        CTfLiteInference(), m_InferWidth(CENTERFACE_INPUT_WIDTH), m_InferHeight(CENTERFACE_INPUT_HEIGHT)
+CDeepLabv3::CDeepLabv3(const std::string& strModelPath, int width, int height) :
+        CDnnInterpreter(width, height, INPUT_CH, cv::Scalar(127.5, 127.5, 127.5), DEEPLAB_SCALE)
+        , m_InferWidth(INPUT_WIDTH), m_InferHeight(INPUT_HEIGHT)
 {
     Init(strModelPath);
 }
-#else
-CCenterFace::CCenterFace() :
-        CDnnInference(CENTERFACE_INPUT_WIDTH, CENTERFACE_INPUT_HEIGHT, CENTERFACE_INPUT_CH, cv::Scalar(0, 0, 0), 1.0)
-        , m_InferWidth(CENTERFACE_INPUT_WIDTH), m_InferHeight(CENTERFACE_INPUT_HEIGHT)
-{
-    Init(CENTERFACE_MODEL_FILE);
-}
 
-CDeepLabv3::CDeepLabv3(const std::string& strModelPath) :
-        CDnnInference(CENTERFACE_INPUT_WIDTH, CENTERFACE_INPUT_HEIGHT, CENTERFACE_INPUT_CH)
-        , m_InferWidth(CENTERFACE_INPUT_WIDTH), m_InferHeight(CENTERFACE_INPUT_HEIGHT)
+CDeepLabv3::CDeepLabv3(int width, int height) :
+        CDnnInterpreter(width, height, INPUT_CH, cv::Scalar(127.5, 127.5, 127.5), DEEPLAB_SCALE)
+        , m_InferWidth(INPUT_WIDTH), m_InferHeight(INPUT_HEIGHT)
 {
-    Init(strModelPath);
+    Init(MODEL_FILE);
 }
-//*/
-#endif
 
 CDeepLabv3::~CDeepLabv3()
 {
@@ -94,23 +72,74 @@ bool CDeepLabv3::Init(const std::string& strtModelPath)
 #endif
 }
 
-
-
-// TODO: convert INT
 cv::Mat CDeepLabv3::Run(const cv::Mat& srcImg)
 {
-	cv::Mat outputMat;
+	
     std::unordered_map<std::string, cv::Mat> vNetOutput = Interpret(srcImg);
 
-    //*
+    cv::Mat outputMat;
     if (vNetOutput.empty())
     {
         std::cout << "end\n";
         return outputMat;
     }
-    
-    //outputMat = vNetOutput[];
+       
+    outputMat = ColorizeSegmentation(vNetOutput["ResizeBilinear_3"]);
     
     return std::move(outputMat);
+}
+
+// from https://github.com/opencv/opencv/blob/master/samples/dnn/segmentation.cpp
+cv::Mat CDeepLabv3::ColorizeSegmentation(const cv::Mat &score)
+{
+    const int rows = score.size[2];
+    const int cols = score.size[3];
+    const int chns = score.size[1];
+    
+    // Generate colors.
+    std::vector<cv::Vec3b> colors;
+    colors.push_back(cv::Vec3b());
+    for (int i = 1; i < chns; ++i)
+    {
+        cv::Vec3b color;
+        for (int j = 0; j < 3; ++j)
+        {
+            color[j] = (colors[i - 1][j] + rand() % 256) / 2;
+        }
+        colors.push_back(color);
+    }
+    
+    cv::Mat maxCl = cv::Mat::zeros(rows, cols, CV_8UC1);
+    cv::Mat maxVal(rows, cols, CV_32FC1, score.data);
+    for (int ch = 1; ch < chns; ch++)
+    {
+        for (int row = 0; row < rows; row++)
+        {
+            const float *ptrScore = score.ptr<float>(0, ch, row);
+            uint8_t *ptrMaxCl = maxCl.ptr<uint8_t>(row);
+            float *ptrMaxVal = maxVal.ptr<float>(row);
+            for (int col = 0; col < cols; col++)
+            {
+                if (ptrScore[col] > ptrMaxVal[col])
+                {
+                    ptrMaxVal[col] = ptrScore[col];
+                    ptrMaxCl[col] = (uchar)ch;
+                }
+            }
+        }
+    }
+
+    cv::Mat segm(rows, cols, CV_8UC3);
+    for (int row = 0; row < rows; row++)
+    {
+        const uchar *ptrMaxCl = maxCl.ptr<uchar>(row);
+        cv::Vec3b *ptrSegm = segm.ptr<cv::Vec3b>(row);
+        for (int col = 0; col < cols; col++)
+        {
+            ptrSegm[col] = colors[ptrMaxCl[col]];
+        }
+    }
+    
+    return std::move(segm);
 }
 

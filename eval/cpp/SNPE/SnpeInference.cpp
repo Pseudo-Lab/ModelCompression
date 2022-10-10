@@ -11,15 +11,15 @@ static const std::string RUNTIME_TYPE = "CPU";
 #endif
 
 
-CDnnInterpreter::CDnnInterpreter(int inWidth, int inHeight, int inChannels, bool isQuantizeMode)
-        : m_inWidth(inWidth), m_inHeight(inHeight), m_inChannels(inChannels), m_isStaticQuantization(isQuantizeMode),
+CDnnInterpreter::CDnnInterpreter(int inWidth, int inHeight, int inChannels)
+        : m_inWidth(inWidth), m_inHeight(inHeight), m_inChannels(inChannels), m_isStaticQuantization(false),
           m_Mean(cv::Scalar()), m_scale(1. / 255)
 {
     Init(RUNTIME_TYPE, "ITENSOR");
 }
 
-CDnnInterpreter::CDnnInterpreter(int inWidth, int inHeight, int inChannels, bool isQuantizeMode, cv::Scalar mean, double scale)
-        : m_inWidth(inWidth), m_inHeight(inHeight), m_inChannels(inChannels), m_isStaticQuantization(isQuantizeMode),
+CDnnInterpreter::CDnnInterpreter(int inWidth, int inHeight, int inChannels, cv::Scalar mean, double scale)
+        : m_inWidth(inWidth), m_inHeight(inHeight), m_inChannels(inChannels), m_isStaticQuantization(false),
           m_Mean(mean), m_scale(scale)
 {
     Init(RUNTIME_TYPE, "ITENSOR");

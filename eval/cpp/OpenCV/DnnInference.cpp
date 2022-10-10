@@ -1,19 +1,19 @@
 #include "DnnInference.h"
 
 
-CDnnInference::CDnnInference(int inWidth, int inHeight, int inChannels)
+CDnnInterpreter::CDnnInterpreter(int inWidth, int inHeight, int inChannels)
         : m_inWidth(inWidth), m_inHeight(inHeight), m_inChannels(inChannels),
           m_Mean(cv::Scalar()), m_scale(1. / 255)
 {
 }
 
-CDnnInference::CDnnInference(int inWidth, int inHeight, int inChannels, cv::Scalar mean, double scale)
+CDnnInterpreter::CDnnInterpreter(int inWidth, int inHeight, int inChannels, cv::Scalar mean, double scale)
         : m_inWidth(inWidth), m_inHeight(inHeight), m_inChannels(inChannels),
           m_Mean(mean), m_scale(scale)
 {
 }
 
-bool CDnnInference::LoadModel(const std::string& strConfigFilePath, const std::string& strWeightFilePath,
+bool CDnnInterpreter::LoadModel(const std::string& strConfigFilePath, const std::string& strWeightFilePath,
                               const std::vector<cv::String>& vOutputLayerNames)
 {
 
@@ -77,7 +77,7 @@ bool CDnnInference::LoadModel(const std::string& strConfigFilePath, const std::s
     return true;
 }
 
-std::unordered_map<std::string, cv::Mat> CDnnInference::Interpret(const cv::Mat& srcImg)
+std::unordered_map<std::string, cv::Mat> CDnnInterpreter::Interpret(const cv::Mat& srcImg)
 {
     if (m_Net.empty() || srcImg.empty())
     {
@@ -102,7 +102,7 @@ std::unordered_map<std::string, cv::Mat> CDnnInference::Interpret(const cv::Mat&
     return std::move(ormOutput);
 }
 
-std::vector <cv::String> CDnnInference::GetOutputsNames(const cv::dnn::Net& net)
+std::vector <cv::String> CDnnInterpreter::GetOutputsNames(const cv::dnn::Net& net)
 {
     static std::vector <cv::String> vstrNames;
     if (vstrNames.empty())
@@ -123,7 +123,7 @@ std::vector <cv::String> CDnnInference::GetOutputsNames(const cv::dnn::Net& net)
     return std::move(vstrNames);
 }
 
-LIB_TYPE CDnnInference::GetLibType(const std::string& strConfigFilePath, const std::string& strWeightFilePath)
+LIB_TYPE CDnnInterpreter::GetLibType(const std::string& strConfigFilePath, const std::string& strWeightFilePath)
 {
     LIB_TYPE libType = LIB_TYPE::NONE;
     std::string strConfigExt = strConfigFilePath.substr(strConfigFilePath.find_last_of(".") + 1);
@@ -152,12 +152,12 @@ LIB_TYPE CDnnInference::GetLibType(const std::string& strConfigFilePath, const s
     return libType;
 }
 
-void CDnnInference::SetInputMean(cv::Scalar value)
+void CDnnInterpreter::SetInputMean(cv::Scalar value)
 {
     m_Mean = value;
 }
 
-void CDnnInference::SetInputScale(double scale)
+void CDnnInterpreter::SetInputScale(double scale)
 {
     m_scale = scale;
 }

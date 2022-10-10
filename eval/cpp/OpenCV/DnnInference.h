@@ -19,13 +19,13 @@ enum class LIB_TYPE
     CAFFE
 };
 
-class CDnnInference
+class CDnnInterpreter
 {
 public:
-    CDnnInference(int inWidth, int inHeight, int inChannels);
-    CDnnInference(int inWidth, int inHeight, int inChannels, cv::Scalar mean, double scale);
+    CDnnInterpreter(int inWidth, int inHeight, int inChannels);
+    CDnnInterpreter(int inWidth, int inHeight, int inChannels, cv::Scalar mean, double scale);
 
-    virtual ~CDnnInference() {}
+    virtual ~CDnnInterpreter() {}
 
     virtual void Run() {}
     bool LoadModel(const std::string& strConfigFilePath, const std::string& strWeightFilePath,
