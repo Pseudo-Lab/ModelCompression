@@ -5,16 +5,17 @@
 
 ## Contributor
 
-- [송태엽 _Taeyup Song_](-) | [Github](-) | [LinkedIn](-) |
-- [선동진 _Dongjin Sun_](-) | [Github](-) | [LinkedIn](-) |
-- [고동근 _Donggeun Ko_](-) | [Github](-) | [LinkedIn](-) |
-- [이종호](-) | [Github](-) | [LinkedIn](-) |
-- [오대환 _Daehwan Oh](-) | [Github](-) | [LinkedIn](-) |
-- [장진우](-) | [Github](-) | [LinkedIn](-) |
-- [손인석](-) | [Github](-) | [LinkedIn](-) |
-- [박수범 _Subeom Park_](-) | [Github](-) | [LinkedIn](-) |
-- [김용환](-) | [Github](-) | [LinkedIn](-) |
-- [김서영](-) | [Github](-) | [LinkedIn](-) |
-- [신세별](-) | [Github](-) | [LinkedIn](-) |
-- [박명규](-) | [Github](-) | [LinkedIn](-) |
-- [이은식 _Eunsik Lee_](-) | [Github](-) | [LinkedIn](-) |
+- [송태엽 _Taeyup Song_](-) | [Github](https://github.com/jerogar) |
+- [선동진 _Dongjin Sun_](-) | [Github](-) |
+- [고동근 _Donggeun Ko_](-) | [Github](-) |
+- [이종호](-) | [Github](-) | 
+- [오대환 _Daehwan Oh](-) | [Github](-) | 
+- [장진우 _Jinwoo Jang_](-) | [Github](https://github.com/Jinwoo1126) | 
+- [손인석 _Inseok Son_](-) | [Github](https://github.com/inseokson) | 
+- [박수범 _Subeom Park_](-) | [Github](-) | 
+- [김용환 _Yonghwan Kim_](-) | [Github](https://github.com/yonghwan1994) | 
+- [김서영](-) | [Github](-) | 
+- [신세별](-) | [Github](-) | 
+- [박명규 _Myung Gyu Park](-) | [Github](https://github.com/audrb1999) | 
+- [이은식 _Eunsik Lee_](-) | [Github](https://github.com/emphasis10) | 
+- [김정현 _Jeonghyon Kim_](-) | [Github](https://github.com/kimjeonghyon) | 
