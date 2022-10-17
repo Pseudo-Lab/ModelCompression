@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <iostream>
 #include <map>
+#include <chrono>
+
 #include "DeepLabv3.h"
 
 #if SNPE_RUNTIME
@@ -17,6 +19,14 @@ static constexpr int INPUT_HEIGHT = 513;
 static constexpr int INPUT_CH = 3;
 
 static constexpr double DEEPLAB_SCALE = 0.007843;
+
+std::vector<cv::Vec3b> vVocColor = {{0,0,0},{0,0,128},{0,128,0},{0,128,128},
+{128,0,0},{128,0,128},{128,128,0},{128,128,128},
+{0,0,64},{0,0,192},{0,192,64},{0,128,192},
+{128,0,64},{128,0,192},{128,128,64},{128,128,192},
+{0,64,0},{0,64,128},{0,192,0},{0,192,128},{128,64,0}};
+
+cv::Vec3b VOC_BOUND = {255,255,255};
 
 //*******************************************************************************************************
 
@@ -95,23 +105,11 @@ cv::Mat CDeepLabv3::ColorizeSegmentation(const cv::Mat &score)
     const int rows = score.size[2];
     const int cols = score.size[3];
     const int chns = score.size[1];
-    
-    // Generate colors.
-    std::vector<cv::Vec3b> colors;
-    colors.push_back(cv::Vec3b());
-    for (int i = 1; i < chns; ++i)
-    {
-        cv::Vec3b color;
-        for (int j = 0; j < 3; ++j)
-        {
-            color[j] = (colors[i - 1][j] + rand() % 256) / 2;
-        }
-        colors.push_back(color);
-    }
-    
+
     cv::Mat maxCl = cv::Mat::zeros(rows, cols, CV_8UC1);
-    cv::Mat maxVal(rows, cols, CV_32FC1, score.data);
-    for (int ch = 1; ch < chns; ch++)
+    cv::Mat maxVal(rows, cols, CV_32FC1);
+    maxVal.setTo(cv::Scalar(0));
+    for (int ch = 0; ch < chns; ch++)
     {
         for (int row = 0; row < rows; row++)
         {
@@ -136,10 +134,83 @@ cv::Mat CDeepLabv3::ColorizeSegmentation(const cv::Mat &score)
         cv::Vec3b *ptrSegm = segm.ptr<cv::Vec3b>(row);
         for (int col = 0; col < cols; col++)
         {
-            ptrSegm[col] = colors[ptrMaxCl[col]];
+            ptrSegm[col] = vVocColor[ptrMaxCl[col]];
         }
     }
     
     return std::move(segm);
 }
 
+void CDeepLabv3::EvaluateVOC12Val(const std::string& strPath)
+{
+    // TODO: check Model Init. flag
+    std::string listPath = strPath + "/ImageSets/Segmentation/val.txt";
+    std::ifstream inStm(listPath);
+    
+    std::string dbName;
+    int imgCont =0;
+    float mIoU = 0.0;
+    std::chrono::milliseconds totalProcTime;
+    while(std::getline(inStm, dbName))
+    {
+    	std::string gtPath = strPath + "/SegmentationClass/" + dbName + ".png";
+    	cv::Mat gtMat = cv::imread(gtPath);
+    	
+    	std::string srcPath = strPath + "/JPEGImages/" + dbName + ".jpg";
+    	cv::Mat srcImg = cv::imread(srcPath);
+
+    	std::cout << srcPath <<"\n";
+
+        //*
+        float iou = 0.0f;
+        if(!srcImg.empty())
+    	{
+            imgCont++;
+
+            std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
+            cv::Mat predMat = Run(srcImg);
+            std::chrono::system_clock::time_point endTime = std::chrono::system_clock::now();
+            cv::resize(predMat, predMat, cv::Size(srcImg.cols, srcImg.rows));
+
+            cv::imwrite("../res/pred.jpg", predMat);
+
+            const int rows = srcImg.rows;
+            const int cols = srcImg.cols;
+
+            int hitCount =0;
+            int vaildCount = 0;
+
+            for (int row = 0; row < rows; row++)
+            {
+                cv::Vec3b *pGtData = gtMat.ptr<cv::Vec3b>(row);
+                cv::Vec3b *pPredData = predMat.ptr<cv::Vec3b>(row);
+                for (int col = 0; col < cols; col++)
+                {
+                    if(pGtData[col] == VOC_BOUND || pGtData[col] == cv::Vec3b(0,0,0))
+                    {
+                        continue;
+                    }
+                    if(pGtData[col] ==pPredData[col])
+                    {
+                        hitCount++;
+                    }
+                    vaildCount++;
+                }
+            }
+            iou = float(hitCount)/float(vaildCount);
+            mIoU +=iou;
+
+            std::chrono::milliseconds procTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+            std::cout << "=> IoU: " << iou << ", Proc. Time: "<< procTime.count() << " [msec]\n";
+
+            totalProcTime += procTime;
+    	}
+    }
+
+    mIoU /= float(imgCont);
+    totalProcTime /= float(imgCont);
+
+    std::cout << "==========================================================\n";
+    std::cout << "=> mIoU: " << mIoU << ", Average Proc. Time: "<< totalProcTime.count() << " [msec]\n";
+
+}
