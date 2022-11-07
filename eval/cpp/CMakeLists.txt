@@ -19,7 +19,7 @@ endif()
 
 # Set DNN Lib. Path
 set(SNPE_ROOT /media/Data/lib/snpe-1.66.0.3729/)
-set(TFLITE_ROOT /media/Data/lib/tensorflow_src_rb5_r2.5)
+set(TFLITE_ROOT /media/Data/lib/tensorflow_src_neq)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -pedantic")
@@ -72,7 +72,7 @@ else()
         message(STATUS "Runtime: TFLite")
         add_compile_definitions(TFLite_RUNTIME)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -lrt")
-        set(TFLITE_BUILD_PATH "/media/Data/lib/tensorflow_src")
+        set(TFLITE_BUILD_PATH "/media/Data/lib/tensorflow_src_new")
 
         set(TENSORFLOW_SOURCE_DIR "" CACHE PATH
                 "Directory that contains the TensorFlow project" )

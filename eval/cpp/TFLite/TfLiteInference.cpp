@@ -1,12 +1,12 @@
 #include "TfLiteInference.h"
 
-CDnnInterpreter::CDnnInterpreter()
+CDnnInterpreter::CDnnInterpreter(int inWidth, int inHeight, int inChannels)
         : m_Mean(cv::Scalar(0,0,0)), m_scale(1.0), m_isReady(false)
 {
     m_pModel = nullptr;
 }
 
-CDnnInterpreter::CDnnInterpreter(cv::Scalar mean, double scale)
+CDnnInterpreter::CDnnInterpreter(int inWidth, int inHeight, int inChannels, cv::Scalar mean, double scale)
         : m_Mean(mean), m_scale(scale), m_isReady(false)
 {
     m_pModel = nullptr;

@@ -265,11 +265,11 @@ std::unique_ptr<zdl::DlSystem::ITensor> CDnnInterpreter::LoadInputTensor(const c
         for (int q = 0; q < targetImg.cols; q++)
         {
             int colStartIdx = q * 3;
-            (*it) = pData[rowStartIdx + colStartIdx + 2];
+            (*it) = (pData[rowStartIdx + colStartIdx + 2] - m_Mean[2]) * m_scale;
             ++it;
-            (*it) = pData[rowStartIdx + colStartIdx + 1];
+            (*it) = (pData[rowStartIdx + colStartIdx + 1] - m_Mean[1]) * m_scale;
             ++it;
-            (*it) = pData[rowStartIdx + colStartIdx + 0];
+            (*it) = (pData[rowStartIdx + colStartIdx + 0] - m_Mean[2]) * m_scale;
             ++it;
         }
     }
@@ -309,24 +309,92 @@ std::unordered_map<std::string, cv::Mat> CDnnInterpreter::Interpret(const cv::Ma
             int size[6];
             cv::Mat curOutputLayer;
             int outputDim = outputTensorMap.size();
+
+            /*
             if (outputDim == 1)
             {
                 curOutputLayer.create(1,tensorPtr->getSize(), CV_32F);
                 std::cout << "-> output tensor [" << name << "]: "
                           << 1 << "x" << tensorPtr->getSize() << "\n";
             }
-            else
+            else//*/
             {
                 for (int k = 0; k < outputDim; k++)
                 {
                     size[k] = tensorPtr->getShape()[k];
                 }
-
+                //*
+                outputDim = 4;
+                size[0]=1;
+                size[1]=513;
+                size[2]=513;
+                size[3]=21;
+                //*/
                 std::cout << "-> output tensor [" << name << "]: "
                           << size[0] << "x" << size[1] << "x" << size[2] << "x" << size[3] << "\n";
 
                 curOutputLayer.create(outputDim, size, CV_32F);
             }
+            float* pOutData = (float*) (curOutputLayer.data);
+            int buffIdx = 0;
+            for (auto it = tensorPtr->begin(); it < tensorPtr->end(); ++it, ++buffIdx)
+            {
+                pOutData[buffIdx] = (*it);
+            }
+            vResult.insert(std::make_pair(name, std::move(curOutputLayer)));
+        }
+    }
+    else
+    {
+        std::cerr << "Error while executing the network." << std::endl;
+    }
+
+
+    return std::move(vResult);
+}
+
+std::unordered_map<std::string, cv::Mat> CDnnInterpreter::Interpret(const cv::Mat& srcImg, std::vector<int>& vOutputSize)
+{
+
+    std::unordered_map<std::string, cv::Mat> vResult;
+
+    // m_bufferType : BUFF_DATATYPE::ITENSOR, Batch=1 only
+    std::unique_ptr<zdl::DlSystem::ITensor> pInputTensor = LoadInputTensor(srcImg);
+
+    if (!pInputTensor)
+    {
+        std::cerr << "Only surpport ITensor buffer";
+        return vResult;
+    }
+    // A tensor map for SNPE execution outputs
+    zdl::DlSystem::TensorMap outputTensorMap;
+
+    // Execute the input tensor on the model with SNPE
+    bool execStatus = m_pSnpe->execute(pInputTensor.get(), outputTensorMap);
+
+    if (execStatus == true)
+    {
+        zdl::DlSystem::StringList tensorNames = outputTensorMap.getTensorNames();
+
+        vResult.reserve(tensorNames.size());
+        for (auto& name : tensorNames)
+        {
+            auto tensorPtr = outputTensorMap.getTensor(name);
+
+            int size[6];
+            cv::Mat curOutputLayer;
+            int outputDim = int(vOutputSize.size());
+
+            for (int k = 0; k < outputDim; k++)
+            {
+                size[k] = vOutputSize[k];
+            }
+
+            std::cout << "-> output tensor [" << name << "]: "
+                      << size[0] << "x" << size[1] << "x" << size[2] << "x" << size[3] << "\n";
+
+            curOutputLayer.create(outputDim, size, CV_32F);
+
             float* pOutData = (float*) (curOutputLayer.data);
             int buffIdx = 0;
             for (auto it = tensorPtr->begin(); it < tensorPtr->end(); ++it, ++buffIdx)

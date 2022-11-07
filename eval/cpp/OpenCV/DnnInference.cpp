@@ -97,6 +97,12 @@ std::unordered_map<std::string, cv::Mat> CDnnInterpreter::Interpret(const cv::Ma
     for (unsigned int iter = 0; iter <vNetOuts.size(); iter++)
     {
         ormOutput.insert(std::make_pair(m_vOutputLayerName[iter], vNetOuts[iter].clone()));
+	std::cout << "Output Dim.: ";
+       for(int k =0; k < vNetOuts[iter].dims; ++k)
+       {
+		std::cout << vNetOuts[iter].size[k] << ",";
+       }
+       std::cout << "\n";
     }//*/
 
     return std::move(ormOutput);

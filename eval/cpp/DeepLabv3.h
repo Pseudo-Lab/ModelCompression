@@ -33,7 +33,8 @@ public:
     cv::Mat Run(const cv::Mat& srcImg);
     void EvaluateVOC12Val(const std::string& strPath);
     
-    cv::Mat ColorizeSegmentation(const cv::Mat &score);
+    cv::Mat ColorizeSegmentationBCHW(const cv::Mat &score);
+    cv::Mat ColorizeSegmentationBHWC(const cv::Mat &score);
 
 private:
 

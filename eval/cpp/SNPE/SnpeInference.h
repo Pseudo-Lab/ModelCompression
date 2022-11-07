@@ -42,6 +42,7 @@ public:
 
 protected:
     virtual std::unordered_map<std::string, cv::Mat> Interpret(const cv::Mat& srcImg);
+    std::unordered_map<std::string, cv::Mat> Interpret(const cv::Mat& srcImg, std::vector<int>& vOutputSize);
 
 private:
 

@@ -6,8 +6,8 @@
 #include "tensorflow/lite/model.h"
 #include "tensorflow/lite/optional_debug_tools.h"
 
-#include "tensorflow/lite/delegates/hexagon/hexagon_delegate.h"
-#include "tensorflow/lite/delegates/gpu/delegate.h"
+//#include "tensorflow/lite/delegates/hexagon/hexagon_delegate.h"
+//#include "tensorflow/lite/delegates/gpu/delegate.h"
 
 #include "opencv2/opencv.hpp"
 
@@ -16,8 +16,8 @@
 class CDnnInterpreter
 {
 public:
-    CDnnInterpreter();
-    CDnnInterpreter(cv::Scalar mean, double scale);
+    CDnnInterpreter(int inWidth, int inHeight, int inChannels);
+    CDnnInterpreter(int inWidth, int inHeight, int inChannels, cv::Scalar mean, double scale);
 
     virtual ~CDnnInterpreter() {}
 
