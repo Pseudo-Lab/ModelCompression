@@ -7,7 +7,7 @@ endif()
 
 set(BUILD_BOARD_MODE 0)
 set(BUILD_TFLITE_MODE 0)
-set(BUILD_SNPE_MODE 0)
+set(BUILD_SNPE_MODE 1)
 
 # Set OpenCV Path
 if (${BUILD_BOARD_MODE})

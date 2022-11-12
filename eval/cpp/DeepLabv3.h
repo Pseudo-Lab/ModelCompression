@@ -35,6 +35,7 @@ public:
     
     cv::Mat ColorizeSegmentationBCHW(const cv::Mat &score);
     cv::Mat ColorizeSegmentationBHWC(const cv::Mat &score);
+    cv::Mat ColorizeSegmentationBD(const cv::Mat &score, std::vector<int> vSize);
 
 private:
 

@@ -265,7 +265,7 @@ std::unique_ptr<zdl::DlSystem::ITensor> CDnnInterpreter::LoadInputTensor(const c
         for (int q = 0; q < targetImg.cols; q++)
         {
             int colStartIdx = q * 3;
-            (*it) = (pData[rowStartIdx + colStartIdx + 2] - m_Mean[2]) * m_scale;
+            (*it) = (pData[rowStartIdx + colStartIdx + 2] - m_Mean[0]) * m_scale;
             ++it;
             (*it) = (pData[rowStartIdx + colStartIdx + 1] - m_Mean[1]) * m_scale;
             ++it;
@@ -310,26 +310,20 @@ std::unordered_map<std::string, cv::Mat> CDnnInterpreter::Interpret(const cv::Ma
             cv::Mat curOutputLayer;
             int outputDim = outputTensorMap.size();
 
-            /*
             if (outputDim == 1)
             {
-                curOutputLayer.create(1,tensorPtr->getSize(), CV_32F);
+                curOutputLayer.create(1,tensorPtr->getSize(), CV_32FC1);
+
                 std::cout << "-> output tensor [" << name << "]: "
                           << 1 << "x" << tensorPtr->getSize() << "\n";
             }
-            else//*/
+            else
             {
                 for (int k = 0; k < outputDim; k++)
                 {
                     size[k] = tensorPtr->getShape()[k];
                 }
-                //*
-                outputDim = 4;
-                size[0]=1;
-                size[1]=513;
-                size[2]=513;
-                size[3]=21;
-                //*/
+
                 std::cout << "-> output tensor [" << name << "]: "
                           << size[0] << "x" << size[1] << "x" << size[2] << "x" << size[3] << "\n";
 
@@ -348,8 +342,6 @@ std::unordered_map<std::string, cv::Mat> CDnnInterpreter::Interpret(const cv::Ma
     {
         std::cerr << "Error while executing the network." << std::endl;
     }
-
-
     return std::move(vResult);
 }
 

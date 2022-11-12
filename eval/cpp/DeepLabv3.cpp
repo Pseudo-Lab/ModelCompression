@@ -87,8 +87,7 @@ cv::Mat CDeepLabv3::Run(const cv::Mat& srcImg)
 {
 #if SNPE_RUNTIME
     std::vector<int> vSize = {1,513,513,21};
-
-    std::unordered_map<std::string, cv::Mat> vNetOutput = Interpret(srcImg, vSize);
+    std::unordered_map<std::string, cv::Mat> vNetOutput = Interpret(srcImg);
 #else
     std::unordered_map<std::string, cv::Mat> vNetOutput = Interpret(srcImg);
 #endif
@@ -99,7 +98,7 @@ cv::Mat CDeepLabv3::Run(const cv::Mat& srcImg)
         return outputMat;
     }
 #if SNPE_RUNTIME
-    outputMat = ColorizeSegmentationBHWC(vNetOutput["ResizeBilinear_2:0"]);
+    outputMat = ColorizeSegmentationBD(vNetOutput["ResizeBilinear_2:0"], vSize);
 #else
     outputMat = ColorizeSegmentationBCHW(vNetOutput["ResizeBilinear_2"]);
 #endif
@@ -184,6 +183,44 @@ cv::Mat CDeepLabv3::ColorizeSegmentationBHWC(const cv::Mat &score)
         for (int col = 0; col < cols; col++)
         {
             ptrSegm[col] = vVocColor[ptrMaxCl[col]];
+        }
+    }
+
+    return std::move(segm);
+}
+
+cv::Mat CDeepLabv3::ColorizeSegmentationBD(const cv::Mat &score, std::vector<int> vSize)
+{
+    int rows = vSize[1];
+    int cols = vSize[2];
+    int chns = vSize[3];
+
+    cv::Mat reScore = score.reshape(chns, rows);
+    cv::Mat segm(rows, cols, CV_8UC3);
+
+    float* scoreData =(float*)reScore.data;
+    int step = reScore.step1();
+
+    for (int row = 0; row < reScore.rows; row++)
+    {
+        cv::Vec3b *ptrSegm = segm.ptr<cv::Vec3b>(row);
+
+        int rowIdx = row * step;
+        for (int col = 0; col < reScore.cols; col++)
+        {
+            int colIdx = rowIdx + chns*col;
+
+            float maxVal = scoreData[colIdx];
+            int maxIdx = 0;
+            for (int ch = 0; ch < chns; ch++)
+            {
+                if (scoreData[colIdx+ch] > maxVal)
+                {
+                    maxVal = scoreData[colIdx+ch] ;
+                    maxIdx = ch;
+                }
+            }
+            ptrSegm[col] = vVocColor[maxIdx];
         }
     }
 
