@@ -6,9 +6,6 @@
 #include "tensorflow/lite/model.h"
 #include "tensorflow/lite/optional_debug_tools.h"
 
-//#include "tensorflow/lite/delegates/hexagon/hexagon_delegate.h"
-//#include "tensorflow/lite/delegates/gpu/delegate.h"
-
 #include "opencv2/opencv.hpp"
 
 #include <unordered_map>
@@ -20,9 +17,7 @@ public:
     CDnnInterpreter(int inWidth, int inHeight, int inChannels, cv::Scalar mean, double scale);
 
     virtual ~CDnnInterpreter() {}
-
     virtual void Run() {}
-
 
 protected:
 
@@ -44,8 +39,6 @@ private:
     std::unique_ptr<tflite::FlatBufferModel> m_pModel;
     tflite::ops::builtin::BuiltinOpResolver m_resolver;
     std::unique_ptr<tflite::Interpreter> m_pInterpreter;
-
-    TfLiteDelegate * m_pDelegate;
 
     cv::Scalar m_Mean;
     double m_scale;

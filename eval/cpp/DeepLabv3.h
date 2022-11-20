@@ -34,14 +34,12 @@ public:
     void EvaluateVOC12Val(const std::string& strPath);
     
     cv::Mat ColorizeSegmentationBCHW(const cv::Mat &score);
-    cv::Mat ColorizeSegmentationBHWC(const cv::Mat &score);
-    cv::Mat ColorizeSegmentationBD(const cv::Mat &score, std::vector<int> vSize);
+    cv::Mat ColorizeSegmentationHWC(const cv::Mat &score);
+    //cv::Mat ColorizeSegmentationBD(const cv::Mat &score, std::vector<int> vSize);
 
 private:
 
     bool Init(const std::string& strtModelPath);
-    
-
 
     int m_InferWidth;
     int m_InferHeight;

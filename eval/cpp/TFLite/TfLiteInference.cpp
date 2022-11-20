@@ -97,10 +97,10 @@ std::unordered_map<std::string, cv::Mat> CDnnInterpreter::Interpret(const cv::Ma
     }
 
     // Step 1. Get [batch, ch, height, width] shape
-    cv::Mat blob = Resize(srcImg);
+    cv::Mat inputBlob = Resize(srcImg);
 
     // Step 2. Set input data
-    memcpy(m_pInterpreter->typed_input_tensor<float>(0), blob.data, blob.total() * blob.elemSize());
+    memcpy(m_pInterpreter->typed_input_tensor<float>(0), inputBlob.data, inputBlob.total() * inputBlob.elemSize());
 
     // Step 3. Run inference
     m_pInterpreter->Invoke();
@@ -112,8 +112,9 @@ std::unordered_map<std::string, cv::Mat> CDnnInterpreter::Interpret(const cv::Ma
     {
         TfLiteTensor* tfOutputTensor = m_pInterpreter->tensor(m_pInterpreter->outputs()[iter]);
 
-        cv::Mat blob(4, tfOutputTensor->dims->data, CV_32F, tfOutputTensor->data.f);
-        vRetTensor.insert(std::make_pair(tfOutputTensor->name, std::move(blob)));
+        auto outputDim = tfOutputTensor->dims->data;
+        cv::Mat outputBlob(outputDim[1], outputDim[2], CV_32FC(outputDim[3]), tfOutputTensor->data.f);
+        vRetTensor.insert(std::make_pair(tfOutputTensor->name, std::move(outputBlob)));
     }
 
     m_pInterpreter->ResetVariableTensors();
@@ -123,18 +124,16 @@ std::unordered_map<std::string, cv::Mat> CDnnInterpreter::Interpret(const cv::Ma
 
 cv::Mat CDnnInterpreter::Resize(const cv::Mat& srcImg)
 {
-    auto inputDim = m_pInterpreter->tensor(m_pInterpreter->inputs()[0])->dims;
+    auto inputDim = m_pInterpreter->tensor(m_pInterpreter->inputs()[0])->dims->data;
 
     cv::Mat targetImg = srcImg.clone();
-    if(inputDim->data[1] != srcImg.channels())
-    {
-        targetImg.convertTo(targetImg, CV_32FC(inputDim->data[1]), 1.0);
-    }
 
-    // TODO m_mean, m_std
-    cv::Mat blob =  cv::dnn::blobFromImage(targetImg, m_scale, cv::Size(inputDim->data[3], inputDim->data[2]), m_Mean, true, false);
+    cv::cvtColor(targetImg, targetImg, cv::COLOR_BGR2RGB);
+    targetImg.convertTo(targetImg, CV_32F);
+    targetImg = (targetImg - m_Mean) *m_scale;
+    cv::resize(targetImg, targetImg, cv::Size(inputDim[2], inputDim[1]));
 
-    return std::move(blob);
+    return std::move(targetImg);
 }
 
 void CDnnInterpreter::SetInputMean(cv::Scalar value)
@@ -158,6 +157,6 @@ cv::Size CDnnInterpreter::GetInputSpatialDim()
 
     auto inputDim = m_pInterpreter->tensor(m_pInterpreter->inputs()[0])->dims;
 
-    return cv::Size(inputDim->data[3], inputDim->data[2]);
+    return cv::Size(inputDim->data[2], inputDim->data[1]);
 }
 

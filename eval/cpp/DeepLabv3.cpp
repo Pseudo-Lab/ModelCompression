@@ -1,23 +1,31 @@
 #include <numeric>
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 #include <map>
 #include <chrono>
 
 #include "DeepLabv3.h"
 
 #if SNPE_RUNTIME
+#if BOARD
+static const std::string MODEL_FILE = "res/deeplabv3_mnv2_dm05_pascal_trainval.dlc";
+#else
 static const std::string MODEL_FILE = "../../../models/dlc/deeplabv3_mnv2_dm05_pascal_trainval.dlc";
-//static const std::string MODEL_FILE = "../../../models/dlc/deeplabv3_from_frozengraph.dlc";
+static const std::string OUTPUT_LAYER_NAME = "ResizeBilinear_2:0";
+#endif
 #elif TFLite_RUNTIME
-static const std::string MODEL_FILE = "../../../models/dlc/fp32.tflite"; // TODO
+static const std::string MODEL_FILE = "../../../models/tflite/deeplabv3_mnv2_dm05_pascal_trainval_fp32.tflite";
+static const std::string OUTPUT_LAYER_NAME = "ResizeBilinear_2:0";
 #else
 static const std::string MODEL_FILE = "../../../models/tf/deeplabv3_mnv2_dm05_pascal_trainval_opt.pb";
+static const std::string OUTPUT_LAYER_NAME = "ResizeBilinear_2:0";
 #endif
 
 static constexpr int INPUT_WIDTH = 513;
 static constexpr int INPUT_HEIGHT = 513;
 static constexpr int INPUT_CH = 3;
+static constexpr int PASCAL_CLASSES = 21;
 
 static constexpr double DEEPLAB_SCALE = 0.007843;
 
@@ -74,8 +82,8 @@ bool CDeepLabv3::Init(const std::string& strtModelPath)
     bool isSucess = LoadModel(strtModelPath);
     cv::Size spatialDim = GetInputSpatialDim();
 
-    m_InferWidth = spatialDim.width;
-    m_InferHeight = spatialDim.height;
+    //m_InferWidth = spatialDim.width;
+    //m_InferHeight = spatialDim.height;
 
     return isSucess;
 #else
@@ -98,7 +106,11 @@ cv::Mat CDeepLabv3::Run(const cv::Mat& srcImg)
         return outputMat;
     }
 #if SNPE_RUNTIME
-    outputMat = ColorizeSegmentationBD(vNetOutput["ResizeBilinear_2:0"], vSize);
+    cv::Mat& outTensorMat = vNetOutput["ResizeBilinear_2:0"];
+    outTensorMat = outTensorMat.reshape(PASCAL_CLASSES, INPUT_HEIGHT);
+    outputMat = ColorizeSegmentationHWC(outTensorMat);
+#elif TFLite_RUNTIME
+    outputMat = ColorizeSegmentationHWC(vNetOutput["ResizeBilinear_2"]);
 #else
     outputMat = ColorizeSegmentationBCHW(vNetOutput["ResizeBilinear_2"]);
 #endif
@@ -147,72 +159,25 @@ cv::Mat CDeepLabv3::ColorizeSegmentationBCHW(const cv::Mat &score)
     return std::move(segm);
 }
 
-cv::Mat CDeepLabv3::ColorizeSegmentationBHWC(const cv::Mat &score)
+cv::Mat CDeepLabv3::ColorizeSegmentationHWC(const cv::Mat &score)
 {
-    const int rows = score.size[1];
-    const int cols = score.size[2];
-    const int chns = score.size[3];
+    cv::Mat segm(score.rows, score.cols, CV_8UC3);
 
-    cv::Mat maxCl = cv::Mat::zeros(rows, cols, CV_8UC1);
-    for (int row = 0; row < rows; row++)
-    {
-        uint8_t *ptrMaxCl = maxCl.ptr<uint8_t>(row);
-        for (int col = 0; col < cols; col++)
-        {
-            const float *ptrScore = score.ptr<float>(0, row, col);
+    float* scoreData =(float*)score.data;
+    int step = score.step1();
 
-            float maxVal = ptrScore[0];
-            int maxIdx = 0;
-            for (int ch = 0; ch < chns; ch++)
-            {
-                if (ptrScore[ch] > maxVal)
-                {
-                    maxVal = ptrScore[col];
-                    maxIdx = ch;
-                }
-            }
-            ptrMaxCl[col] = (uchar)maxIdx;
-        }
-    }
-
-    cv::Mat segm(rows, cols, CV_8UC3);
-    for (int row = 0; row < rows; row++)
-    {
-        const uchar *ptrMaxCl = maxCl.ptr<uchar>(row);
-        cv::Vec3b *ptrSegm = segm.ptr<cv::Vec3b>(row);
-        for (int col = 0; col < cols; col++)
-        {
-            ptrSegm[col] = vVocColor[ptrMaxCl[col]];
-        }
-    }
-
-    return std::move(segm);
-}
-
-cv::Mat CDeepLabv3::ColorizeSegmentationBD(const cv::Mat &score, std::vector<int> vSize)
-{
-    int rows = vSize[1];
-    int cols = vSize[2];
-    int chns = vSize[3];
-
-    cv::Mat reScore = score.reshape(chns, rows);
-    cv::Mat segm(rows, cols, CV_8UC3);
-
-    float* scoreData =(float*)reScore.data;
-    int step = reScore.step1();
-
-    for (int row = 0; row < reScore.rows; row++)
+    for (int row = 0; row < score.rows; row++)
     {
         cv::Vec3b *ptrSegm = segm.ptr<cv::Vec3b>(row);
 
-        int rowIdx = row * step;
-        for (int col = 0; col < reScore.cols; col++)
+        int rowIdx = row *step;
+        for (int col = 0; col < score.cols; col++)
         {
-            int colIdx = rowIdx + chns*col;
+            int colIdx = rowIdx + score.channels() *col;
 
             float maxVal = scoreData[colIdx];
             int maxIdx = 0;
-            for (int ch = 0; ch < chns; ch++)
+            for (int ch = 0; ch < score.channels(); ch++)
             {
                 if (scoreData[colIdx+ch] > maxVal)
                 {
