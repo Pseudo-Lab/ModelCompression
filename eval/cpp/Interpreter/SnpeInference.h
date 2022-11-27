@@ -18,6 +18,8 @@
 
 #include "opencv2/opencv.hpp"
 
+#include "IInterpreter.h"
+
 enum class BUFF_DATATYPE
 {
     UNKNOWN, USERBUFFER_FLOAT, USERBUFFER_TF8, ITENSOR, USERBUFFER_TF16
@@ -28,38 +30,24 @@ enum class BUFF_TYPE
 };
 
 
-class CDnnInterpreter
+class CSnpeInference : public IInterpreter
 {
 public:
-    CDnnInterpreter(int inWidth, int inHeight, int inChannels);
-    CDnnInterpreter(int inWidth, int inHeight, int inChannels, cv::Scalar mean, double scale);
+    CSnpeInference(const std::string& strWeightFilePath, const std::string& strConfigFilePath);
+    ~CSnpeInference();
 
-    virtual ~CDnnInterpreter();
+    bool SetInputShape(int inWidth, int inHeight, int inChannels);
+    bool SetDelegate(DELEGATE _delegate);
+    bool LoadModel();
 
-    virtual void Run() {}
-    bool LoadModel(const std::string& strModelPath,
-                   std::vector<std::string> strOutputLayerName = std::vector<std::string>());
-
-protected:
-    virtual std::unordered_map<std::string, cv::Mat> Interpret(const cv::Mat& srcImg);
-    std::unordered_map<std::string, cv::Mat> Interpret(const cv::Mat& srcImg, std::vector<int>& vOutputSize);
+    std::unordered_map<std::string, cv::Mat> Interpret(const cv::Mat& srcImg);
 
 private:
 
     bool Init(const std::string& strRuntimeType, const std::string& strBufferType);
 
-    void SetInputMean(cv::Scalar value);
-    void SetInputScale(double scale);
-
     std::unique_ptr<zdl::DlSystem::ITensor> LoadInputTensor(const cv::Mat& srcImg);
-    zdl::DlSystem::Runtime_t checkRuntime(zdl::DlSystem::Runtime_t runtime, bool &staticQuantization);
-
-    int m_inWidth;
-    int m_inHeight;
-    int m_inChannels;
-
-    cv::Scalar m_Mean;
-    double m_scale;
+    zdl::DlSystem::Runtime_t CheckRuntime(zdl::DlSystem::Runtime_t runtime, bool &staticQuantization);
 
     bool m_isRuntimeSpecified;
     bool m_isStaticQuantization;

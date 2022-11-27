@@ -11,22 +11,13 @@ static const std::string RUNTIME_TYPE = "CPU";
 #endif
 
 
-CDnnInterpreter::CDnnInterpreter(int inWidth, int inHeight, int inChannels)
-        : m_inWidth(inWidth), m_inHeight(inHeight), m_inChannels(inChannels), m_isStaticQuantization(false),
-          m_Mean(cv::Scalar()), m_scale(1. / 255)
+CSnpeInference::CSnpeInference(const std::string& strWeightFilePath, const std::string& strConfigFilePath)
+        : IInterpreter(strWeightFilePath, strConfigFilePath)
 {
     Init(RUNTIME_TYPE, "ITENSOR");
 }
-
-CDnnInterpreter::CDnnInterpreter(int inWidth, int inHeight, int inChannels, cv::Scalar mean, double scale)
-        : m_inWidth(inWidth), m_inHeight(inHeight), m_inChannels(inChannels), m_isStaticQuantization(false),
-          m_Mean(mean), m_scale(scale)
-{
-    Init(RUNTIME_TYPE, "ITENSOR");
-}
-
 //*
-CDnnInterpreter::~CDnnInterpreter()
+CSnpeInference::~CSnpeInference()
 {
     if (m_pSnpe != nullptr)
     {
@@ -35,8 +26,26 @@ CDnnInterpreter::~CDnnInterpreter()
     }
 }//*/
 
+bool CSnpeInference::SetInputShape(int inWidth, int inHeight, int inChannels)
+{
+    m_inWidth =inWidth;
+    m_inHeight =inHeight;
+    m_inChannels =inChannels;
+}
 
-bool CDnnInterpreter::Init(const std::string& strRuntimeType, const std::string& strBufferType)
+// TODO: merge Init() and LoadModel()
+bool CSnpeInference::SetDelegate(DELEGATE _delegate)
+{
+    if(m_isLoadModel)
+    {
+        std::cout << "Please set delegate before load model!\n";
+        return false;
+    }
+
+    return true;
+}
+
+bool CSnpeInference::Init(const std::string& strRuntimeType, const std::string& strBufferType)
 {
     // Step 1. Set Runtime type
     m_runtime = zdl::DlSystem::Runtime_t::CPU;
@@ -101,13 +110,13 @@ bool CDnnInterpreter::Init(const std::string& strRuntimeType, const std::string&
 
     if (m_isRuntimeSpecified)
     {
-        m_runtime = checkRuntime(m_runtime, m_isStaticQuantization);
+        m_runtime = CheckRuntime(m_runtime, m_isStaticQuantization);
     }
 
     return true;
 }
 
-zdl::DlSystem::Runtime_t CDnnInterpreter::checkRuntime(zdl::DlSystem::Runtime_t runtime, bool &staticQuantization)
+zdl::DlSystem::Runtime_t CSnpeInference::CheckRuntime(zdl::DlSystem::Runtime_t runtime, bool &staticQuantization)
 {
     static zdl::DlSystem::Version_t Version = zdl::SNPE::SNPEFactory::getLibraryVersion();
 
@@ -129,12 +138,12 @@ zdl::DlSystem::Runtime_t CDnnInterpreter::checkRuntime(zdl::DlSystem::Runtime_t 
     return runtime;
 }
 
-bool CDnnInterpreter::LoadModel(const std::string& strModelPath, std::vector<std::string> strOutputLayerName)
+bool CSnpeInference::LoadModel()
 {
-    std::cout << "Load Model\n-> .dlc File: " << strModelPath << "\n";
+    std::cout << "Load Model\n-> .dlc File: " << m_strWeightFilePath << "\n";
 
     // load dlc
-    m_pContainer = zdl::DlContainer::IDlContainer::open(zdl::DlSystem::String(strModelPath.c_str()));
+    m_pContainer = zdl::DlContainer::IDlContainer::open(zdl::DlSystem::String(m_strWeightFilePath.c_str()));
 
     if (m_pContainer == nullptr)
     {
@@ -156,11 +165,11 @@ bool CDnnInterpreter::LoadModel(const std::string& strModelPath, std::vector<std
         m_runtimeList.add(m_runtime);
     }
 
-    if (!strOutputLayerName.empty())
+    if (!m_vOutputLayerName.empty())
     {
         zdl::DlSystem::StringList strOutputLayerNames;
 
-        for (auto& strLayerName : strOutputLayerName)
+        for (auto& strLayerName : m_vOutputLayerName)
         {
             strOutputLayerNames.append(strLayerName.c_str());
         }
@@ -191,7 +200,7 @@ bool CDnnInterpreter::LoadModel(const std::string& strModelPath, std::vector<std
     // TODO: check routines for save and load Caching data
     if (isUsingInitCaching)
     {
-        if (m_pContainer->save(strModelPath))
+        if (m_pContainer->save(m_strWeightFilePath))
         {
             std::cout << "Saved container into archive successfully" << std::endl;
         }
@@ -214,10 +223,12 @@ bool CDnnInterpreter::LoadModel(const std::string& strModelPath, std::vector<std
     std::cout << "-> input dimension for the container: "
               << batchSize << "x" << heightSize << "x" << widthSize << "x" << chSize << std::endl;
 
+    m_isLoadModel = true;
+
     return true;
 }
 
-std::unique_ptr<zdl::DlSystem::ITensor> CDnnInterpreter::LoadInputTensor(const cv::Mat& srcImg)
+std::unique_ptr<zdl::DlSystem::ITensor> CSnpeInference::LoadInputTensor(const cv::Mat& srcImg)
 {
     std::unique_ptr<zdl::DlSystem::ITensor> pInputTensor;
 
@@ -277,7 +288,7 @@ std::unique_ptr<zdl::DlSystem::ITensor> CDnnInterpreter::LoadInputTensor(const c
     return std::move(pInputTensor);
 }
 
-std::unordered_map<std::string, cv::Mat> CDnnInterpreter::Interpret(const cv::Mat& srcImg)
+std::unordered_map<std::string, cv::Mat> CSnpeInference::Interpret(const cv::Mat& srcImg)
 {
 
     std::unordered_map<std::string, cv::Mat> vResult;
@@ -343,74 +354,4 @@ std::unordered_map<std::string, cv::Mat> CDnnInterpreter::Interpret(const cv::Ma
         std::cerr << "Error while executing the network." << std::endl;
     }
     return std::move(vResult);
-}
-
-std::unordered_map<std::string, cv::Mat> CDnnInterpreter::Interpret(const cv::Mat& srcImg, std::vector<int>& vOutputSize)
-{
-
-    std::unordered_map<std::string, cv::Mat> vResult;
-
-    // m_bufferType : BUFF_DATATYPE::ITENSOR, Batch=1 only
-    std::unique_ptr<zdl::DlSystem::ITensor> pInputTensor = LoadInputTensor(srcImg);
-
-    if (!pInputTensor)
-    {
-        std::cerr << "Only surpport ITensor buffer";
-        return vResult;
-    }
-    // A tensor map for SNPE execution outputs
-    zdl::DlSystem::TensorMap outputTensorMap;
-
-    // Execute the input tensor on the model with SNPE
-    bool execStatus = m_pSnpe->execute(pInputTensor.get(), outputTensorMap);
-
-    if (execStatus == true)
-    {
-        zdl::DlSystem::StringList tensorNames = outputTensorMap.getTensorNames();
-
-        vResult.reserve(tensorNames.size());
-        for (auto& name : tensorNames)
-        {
-            auto tensorPtr = outputTensorMap.getTensor(name);
-
-            int size[6];
-            cv::Mat curOutputLayer;
-            int outputDim = int(vOutputSize.size());
-
-            for (int k = 0; k < outputDim; k++)
-            {
-                size[k] = vOutputSize[k];
-            }
-
-            std::cout << "-> output tensor [" << name << "]: "
-                      << size[0] << "x" << size[1] << "x" << size[2] << "x" << size[3] << "\n";
-
-            curOutputLayer.create(outputDim, size, CV_32F);
-
-            float* pOutData = (float*) (curOutputLayer.data);
-            int buffIdx = 0;
-            for (auto it = tensorPtr->begin(); it < tensorPtr->end(); ++it, ++buffIdx)
-            {
-                pOutData[buffIdx] = (*it);
-            }
-            vResult.insert(std::make_pair(name, std::move(curOutputLayer)));
-        }
-    }
-    else
-    {
-        std::cerr << "Error while executing the network." << std::endl;
-    }
-
-
-    return std::move(vResult);
-}
-
-void CDnnInterpreter::SetInputMean(cv::Scalar value)
-{
-    m_Mean = value;
-}
-
-void CDnnInterpreter::SetInputScale(double scale)
-{
-    m_scale = scale;
 }

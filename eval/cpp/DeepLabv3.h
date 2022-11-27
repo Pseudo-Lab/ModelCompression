@@ -13,36 +13,27 @@
 #include <opencv2/dnn.hpp>
 #include <opencv2/ml.hpp>
 
-#if SNPE_RUNTIME
-#include "SNPE/SnpeInference.h"
-#elif TFLite_RUNTIME
-#include "TFLite/TfLiteInference.h"
-#else
-#include "OpenCV/DnnInference.h"
-#endif
+#include "Interpreter/IInterpreter.h"
 
-class CDeepLabv3 : public CDnnInterpreter
+class CDeepLabv3
 {
 public:
-	explicit CDeepLabv3();
-	explicit CDeepLabv3(const std::string& strModelPath);
-	explicit CDeepLabv3(const std::string& strModelPath, int width, int height);
-	explicit CDeepLabv3(int width, int height);
+    explicit CDeepLabv3(std::unique_ptr<IInterpreter> pInterpreter);
+    explicit CDeepLabv3(std::unique_ptr<IInterpreter> pInterpreter,
+                        const std::string& strWeightPath, const std::string& strConfigPath,
+                        int _inWidth, int _inHeight, int _inCh, cv::Scalar mean, double scale);
+
     ~CDeepLabv3();
 
     cv::Mat Run(const cv::Mat& srcImg);
     void EvaluateVOC12Val(const std::string& strPath);
-    
-    cv::Mat ColorizeSegmentationBCHW(const cv::Mat &score);
-    cv::Mat ColorizeSegmentationHWC(const cv::Mat &score);
-    //cv::Mat ColorizeSegmentationBD(const cv::Mat &score, std::vector<int> vSize);
+
 
 private:
+    cv::Mat ColorizeSegmentationBCHW(const cv::Mat &score);
+    cv::Mat ColorizeSegmentationHWC(const cv::Mat &score);
 
-    bool Init(const std::string& strtModelPath);
-
-    int m_InferWidth;
-    int m_InferHeight;
+    std::unique_ptr<IInterpreter> m_pInterpreter;
 };
 
 #endif //DEEPLABV3_H

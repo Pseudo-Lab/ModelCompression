@@ -1,27 +1,41 @@
 #include "TfLiteInference.h"
 
-CDnnInterpreter::CDnnInterpreter(int inWidth, int inHeight, int inChannels)
-        : m_Mean(cv::Scalar(0,0,0)), m_scale(1.0), m_isReady(false)
+CTfLiteInterpreter::CTfLiteInterpreter(const std::string& strWeightFilePath, const std::string& strConfigFilePath)
+        : IInterpreter(strWeightFilePath, strConfigFilePath)
 {
-    m_pModel = nullptr;
 }
 
-CDnnInterpreter::CDnnInterpreter(int inWidth, int inHeight, int inChannels, cv::Scalar mean, double scale)
-        : m_Mean(mean), m_scale(scale), m_isReady(false)
+bool CTfLiteInterpreter::SetInputShape(int inWidth, int inHeight, int inChannels)
 {
-    m_pModel = nullptr;
+    std::cout << "TFLite interpretr not support dynamic input shape\n";
 }
 
-bool CDnnInterpreter::LoadModel(const std::string& strModelPath)
+bool CTfLiteInterpreter::SetDelegate(DELEGATE _delegate)
 {
-    m_isReady = true;
+    if(m_isLoadModel)
+    {
+        std::cout << "Please set delegate before load model!\n";
+        return false;
+    }
+
+    if(_delegate != DELEGATE::CPU)
+    {
+        std::cout << "Only CPU (XNNPACK) delegate supported!\n";
+        return false;
+    }
+    return true;
+}
+
+bool CTfLiteInterpreter::LoadModel()
+{
+    m_isLoadModel = true;
 
     // Step 1. Load Model
-    m_pModel = tflite::FlatBufferModel::BuildFromFile(strModelPath.c_str());
+    m_pModel = tflite::FlatBufferModel::BuildFromFile(m_strWeightFilePath.c_str());
 
     if(!m_pModel)
     {
-        m_isReady = false;
+        m_isLoadModel = false;
         std::cerr << "Failed to mmap model!";
         return false;
     }
@@ -31,32 +45,27 @@ bool CDnnInterpreter::LoadModel(const std::string& strModelPath)
 
     if(!m_pInterpreter)
     {
-        m_isReady = false;
+        m_isLoadModel = false;
         std::cerr << "Failed to construct interpreter";
         return false;
     }
 
     if(m_pInterpreter->AllocateTensors() != kTfLiteOk)
     {
+        m_isLoadModel = false;
         std::cerr << "Failed to allocate tensor!";
-        m_isReady = false;
         return false;
     }
 
-    std::cout << "Load complete: " << strModelPath << "\n";
+    std::cout << "Load complete: " << m_strWeightFilePath << "\n";
     ShowSummery();
 
-    return m_isReady;
+    return m_isLoadModel;
 }
 
-//* ToDo: Delete using "TfLiteGpuDelegateV2Delete( delegate_);"
-void CDnnInterpreter::Release()
+void CTfLiteInterpreter::ShowSummery()
 {
-}
-
-void CDnnInterpreter::ShowSummery()
-{
-    if(!m_isReady)
+    if(!m_isLoadModel)
     {
         return;
     }
@@ -75,10 +84,17 @@ void CDnnInterpreter::ShowSummery()
                   << inputDim->data[2]<< ", " << inputDim->data[3] << "]\n";
     }
 
+    // Set Input Shape Info.
+    auto inputDim = m_pInterpreter->tensor(m_pInterpreter->inputs()[0])->dims;
+    m_inWidth = inputDim->data[2];
+    m_inHeight =inputDim->data[1];
+    m_inChannels =inputDim->data[3];
+
     std::cout << "-> Outputs: " << m_pInterpreter->outputs().size() << "\n";
     for(int iter =0; iter <m_pInterpreter->outputs().size(); iter++)
     {
         std::cout << "--> output(0) name: " << m_pInterpreter->GetOutputName(iter) << "\n";
+        m_vOutputLayerName.push_back(m_pInterpreter->GetOutputName(iter));
 
         auto outputDim = m_pInterpreter->tensor(m_pInterpreter->outputs()[iter])->dims;
 
@@ -86,18 +102,23 @@ void CDnnInterpreter::ShowSummery()
                   << outputDim->data[0] << ", " << outputDim->data[1] << ", "
                   << outputDim->data[2]<< ", " << outputDim->data[3] << "]\n";
     }
-
 }
-std::unordered_map<std::string, cv::Mat> CDnnInterpreter::Interpret(const cv::Mat& srcImg)
+std::unordered_map<std::string, cv::Mat> CTfLiteInterpreter::Interpret(const cv::Mat& srcImg)
 {
-    if(!m_isReady)
+    if(!m_isLoadModel)
     {
-        std::cerr << "Please Init. TFLite Interpreter!! ";
+        std::cerr << "Please load model first!!";
+        return std::unordered_map<std::string, cv::Mat>();
+    }
+
+    if (srcImg.empty())
+    {
+        std::cerr << "Please Check input tensor\n";
         return std::unordered_map<std::string, cv::Mat>();
     }
 
     // Step 1. Get [batch, ch, height, width] shape
-    cv::Mat inputBlob = Resize(srcImg);
+    cv::Mat inputBlob = ConvertInputTensor(srcImg);
 
     // Step 2. Set input data
     memcpy(m_pInterpreter->typed_input_tensor<float>(0), inputBlob.data, inputBlob.total() * inputBlob.elemSize());
@@ -114,6 +135,7 @@ std::unordered_map<std::string, cv::Mat> CDnnInterpreter::Interpret(const cv::Ma
 
         auto outputDim = tfOutputTensor->dims->data;
         cv::Mat outputBlob(outputDim[1], outputDim[2], CV_32FC(outputDim[3]), tfOutputTensor->data.f);
+
         vRetTensor.insert(std::make_pair(tfOutputTensor->name, std::move(outputBlob)));
     }
 
@@ -122,7 +144,7 @@ std::unordered_map<std::string, cv::Mat> CDnnInterpreter::Interpret(const cv::Ma
     return std::move(vRetTensor);
 }
 
-cv::Mat CDnnInterpreter::Resize(const cv::Mat& srcImg)
+cv::Mat CTfLiteInterpreter::ConvertInputTensor(const cv::Mat& srcImg)
 {
     auto inputDim = m_pInterpreter->tensor(m_pInterpreter->inputs()[0])->dims->data;
 
@@ -136,19 +158,9 @@ cv::Mat CDnnInterpreter::Resize(const cv::Mat& srcImg)
     return std::move(targetImg);
 }
 
-void CDnnInterpreter::SetInputMean(cv::Scalar value)
+cv::Size CTfLiteInterpreter::GetInputSpatialDim()
 {
-    m_Mean = value;
-}
-
-void CDnnInterpreter::SetInputScale(double scale)
-{
-    m_scale = scale;
-}
-
-cv::Size CDnnInterpreter::GetInputSpatialDim()
-{
-    if(!m_isReady)
+    if(!m_isLoadModel)
     {
         std::cerr << "Please Init. TFLite Interpreter!! ";
 

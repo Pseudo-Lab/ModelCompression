@@ -1,55 +1,52 @@
 #include "DnnInference.h"
 
 
-CDnnInterpreter::CDnnInterpreter(int inWidth, int inHeight, int inChannels)
-        : m_inWidth(inWidth), m_inHeight(inHeight), m_inChannels(inChannels),
-          m_Mean(cv::Scalar()), m_scale(1. / 255)
+CDnnInterpreter::CDnnInterpreter(const std::string& strWeightFilePath, const std::string& strConfigFilePath)
+                                : IInterpreter(strWeightFilePath, strConfigFilePath)
 {
 }
 
-CDnnInterpreter::CDnnInterpreter(int inWidth, int inHeight, int inChannels, cv::Scalar mean, double scale)
-        : m_inWidth(inWidth), m_inHeight(inHeight), m_inChannels(inChannels),
-          m_Mean(mean), m_scale(scale)
+bool CDnnInterpreter::SetInputShape(int inWidth, int inHeight, int inChannels)
 {
+    m_inWidth =inWidth;
+    m_inHeight =inHeight;
+    m_inChannels =inChannels;
 }
 
-bool CDnnInterpreter::LoadModel(const std::string& strConfigFilePath, const std::string& strWeightFilePath,
-                              const std::vector<cv::String>& vOutputLayerNames)
+bool CDnnInterpreter::LoadModel()
 {
-
-    std::cout << "Load Model\n-> Config File: " << strConfigFilePath << "\n-> Weight File: " << strWeightFilePath
+    std::cout << "Load Model\n-> Config File: " << m_strConfigFilePath << "\n-> Weight File: " << m_strWeightFilePath
               << "\n";
 
-    LIB_TYPE libType = GetLibType(strConfigFilePath, strWeightFilePath);
-
+    LIB_TYPE libType = GetLibType(m_strConfigFilePath, m_strWeightFilePath);
 
     switch (libType)
     {
         case LIB_TYPE::DARKNET:
-            m_Net = cv::dnn::readNetFromDarknet(strConfigFilePath, strWeightFilePath);
+            m_Net = cv::dnn::readNetFromDarknet(m_strConfigFilePath, m_strWeightFilePath);
             std::cout << "Load Darknet model\n";
             break;
         case LIB_TYPE::TENSORFLOW:
-            if (strConfigFilePath.empty())
+            if (m_strConfigFilePath.empty())
             {
-                m_Net = cv::dnn::readNetFromTensorflow(strWeightFilePath);
+                m_Net = cv::dnn::readNetFromTensorflow(m_strWeightFilePath);
             }
             else
             {
-                m_Net = cv::dnn::readNetFromTensorflow(strWeightFilePath, strConfigFilePath);
+                m_Net = cv::dnn::readNetFromTensorflow(m_strWeightFilePath, m_strConfigFilePath);
             }
             std::cout << "Load TF model\n";
             break;
         case LIB_TYPE::ONNX:
-            m_Net = cv::dnn::readNet(strWeightFilePath);
+            m_Net = cv::dnn::readNet(m_strWeightFilePath);
             std::cout << "Load ONNX model\n";
             break;
         case LIB_TYPE::TORCH:
-            m_Net = cv::dnn::readNetFromTorch(strWeightFilePath);
+            m_Net = cv::dnn::readNetFromTorch(m_strWeightFilePath);
             std::cout << "Load Torch model\n";
             break;
         case LIB_TYPE::CAFFE:
-            m_Net = cv::dnn::readNetFromCaffe(strConfigFilePath, strWeightFilePath);
+            m_Net = cv::dnn::readNetFromCaffe(m_strConfigFilePath, m_strWeightFilePath);
             std::cout << "Load Torch model\n";
             break;
         default:
@@ -57,55 +54,81 @@ bool CDnnInterpreter::LoadModel(const std::string& strConfigFilePath, const std:
             break;
     }
 
-
     if (m_Net.empty())
     {
         return false;
     }
 
+    // TODO: SetDelegate();
     m_Net.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
     m_Net.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
 
-    if(vOutputLayerNames.empty())
+    if(m_vOutputLayerName.empty())
     {
         m_vOutputLayerName = GetOutputsNames(m_Net);
     }
-    else
+
+    m_isLoadModel = true;
+    return true;
+}
+
+bool CDnnInterpreter::SetDelegate(DELEGATE _delegate)
+{
+    if(m_isLoadModel)
     {
-        std::copy(vOutputLayerNames.begin(), vOutputLayerNames.end(), m_vOutputLayerName.begin());
+        std::cout << "Please set delegate before load model!\n";
+        return false;
+    }
+
+    if(_delegate != DELEGATE::CPU)
+    {
+        std::cout << "Only CPU delegate supported!\n";
+        return false;
     }
     return true;
 }
 
 std::unordered_map<std::string, cv::Mat> CDnnInterpreter::Interpret(const cv::Mat& srcImg)
 {
-    if (m_Net.empty() || srcImg.empty())
+    if(!m_isLoadModel)
     {
-        std::cerr << "Please Check model or input image\n";
+        std::cerr << "Please load model first!!";
         return std::unordered_map<std::string, cv::Mat>();
     }
 
-    std::vector<cv::Mat> vNetOuts;
+    if (srcImg.empty())
+    {
+        std::cerr << "Please Check input tensor\n";
+        return std::unordered_map<std::string, cv::Mat>();
+    }
 
-    cv::Mat blob = cv::dnn::blobFromImage(srcImg, m_scale, cv::Size(m_inWidth, m_inHeight), m_Mean, true, false);
+    cv::Mat blob = ConvertInputTensor(srcImg);
     m_Net.setInput(blob);
+
+    std::vector<cv::Mat> vNetOuts;
     m_Net.forward(vNetOuts, m_vOutputLayerName);
 
-    //
     std::unordered_map<std::string, cv::Mat> ormOutput;
     ormOutput.reserve(vNetOuts.size());
     for (unsigned int iter = 0; iter <vNetOuts.size(); iter++)
     {
         ormOutput.insert(std::make_pair(m_vOutputLayerName[iter], vNetOuts[iter].clone()));
-	std::cout << "Output Dim.: ";
-       for(int k =0; k < vNetOuts[iter].dims; ++k)
-       {
-		std::cout << vNetOuts[iter].size[k] << ",";
-       }
-       std::cout << "\n";
-    }//*/
+        std::cout << "Output Dim.: ";
+        for(int k =0; k < vNetOuts[iter].dims; ++k)
+        {
+            std::cout << vNetOuts[iter].size[k] << ",";
+        }
+        std::cout << "\n";
+    }
 
     return std::move(ormOutput);
+}
+
+cv::Mat CDnnInterpreter::ConvertInputTensor(const cv::Mat& srcImg)
+{
+    cv::Mat blob = cv::dnn::blobFromImage(srcImg, m_scale, cv::Size(m_inWidth, m_inHeight), m_Mean, true, false);
+
+    return std::move(blob);
 }
 
 std::vector <cv::String> CDnnInterpreter::GetOutputsNames(const cv::dnn::Net& net)
@@ -156,14 +179,4 @@ LIB_TYPE CDnnInterpreter::GetLibType(const std::string& strConfigFilePath, const
     }
 
     return libType;
-}
-
-void CDnnInterpreter::SetInputMean(cv::Scalar value)
-{
-    m_Mean = value;
-}
-
-void CDnnInterpreter::SetInputScale(double scale)
-{
-    m_scale = scale;
 }

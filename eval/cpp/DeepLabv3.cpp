@@ -7,28 +7,7 @@
 
 #include "DeepLabv3.h"
 
-#if SNPE_RUNTIME
-#if BOARD
-static const std::string MODEL_FILE = "res/deeplabv3_mnv2_dm05_pascal_trainval.dlc";
-#else
-static const std::string MODEL_FILE = "../../../models/dlc/deeplabv3_mnv2_dm05_pascal_trainval.dlc";
-static const std::string OUTPUT_LAYER_NAME = "ResizeBilinear_2:0";
-#endif
-#elif TFLite_RUNTIME
-static const std::string MODEL_FILE = "../../../models/tflite/deeplabv3_mnv2_dm05_pascal_trainval_fp32.tflite";
-static const std::string OUTPUT_LAYER_NAME = "ResizeBilinear_2:0";
-#else
-static const std::string MODEL_FILE = "../../../models/tf/deeplabv3_mnv2_dm05_pascal_trainval_opt.pb";
-static const std::string OUTPUT_LAYER_NAME = "ResizeBilinear_2:0";
-#endif
-
-static constexpr int INPUT_WIDTH = 513;
-static constexpr int INPUT_HEIGHT = 513;
-static constexpr int INPUT_CH = 3;
 static constexpr int PASCAL_CLASSES = 21;
-
-static constexpr double DEEPLAB_SCALE = 0.007843;
-
 std::vector<cv::Vec3b> vVocColor = {{0,0,0},{0,0,128},{0,128,0},{0,128,128},
 {128,0,0},{128,0,128},{128,128,0},{128,128,128},
 {0,0,64},{0,0,192},{0,192,64},{0,128,192},
@@ -40,65 +19,30 @@ cv::Vec3b ZERO_VEC = cv::Vec3b(0,0,0);
 
 //*******************************************************************************************************
 
-CDeepLabv3::CDeepLabv3() :
-        CDnnInterpreter(INPUT_WIDTH, INPUT_HEIGHT, INPUT_CH, cv::Scalar(127.5, 127.5, 127.5), DEEPLAB_SCALE)
-        , m_InferWidth(INPUT_WIDTH), m_InferHeight(INPUT_HEIGHT)
+
+CDeepLabv3::CDeepLabv3(std::unique_ptr<IInterpreter> pInterpreter)
 {
-    Init(MODEL_FILE);
+    m_pInterpreter = std::move(pInterpreter);
+    m_pInterpreter->LoadModel();
 }
 
-CDeepLabv3::CDeepLabv3(const std::string& strModelPath) :
-        CDnnInterpreter(INPUT_WIDTH, INPUT_HEIGHT, INPUT_CH, cv::Scalar(127.5, 127.5, 127.5), DEEPLAB_SCALE)
-        , m_InferWidth(INPUT_WIDTH), m_InferHeight(INPUT_HEIGHT)
+CDeepLabv3::CDeepLabv3(std::unique_ptr<IInterpreter> pInterpreter,
+                       const std::string& strWeightPath, const std::string& strConfigPath,
+                       int _inWidth, int _inHeight, int _inCh, cv::Scalar mean, double scale)
 {
-    Init(strModelPath);
-}
-
-CDeepLabv3::CDeepLabv3(const std::string& strModelPath, int width, int height) :
-        CDnnInterpreter(width, height, INPUT_CH, cv::Scalar(127.5, 127.5, 127.5), DEEPLAB_SCALE)
-        , m_InferWidth(INPUT_WIDTH), m_InferHeight(INPUT_HEIGHT)
-{
-    Init(strModelPath);
-}
-
-CDeepLabv3::CDeepLabv3(int width, int height) :
-        CDnnInterpreter(width, height, INPUT_CH, cv::Scalar(127.5, 127.5, 127.5), DEEPLAB_SCALE)
-        , m_InferWidth(INPUT_WIDTH), m_InferHeight(INPUT_HEIGHT)
-{
-    Init(MODEL_FILE);
+    m_pInterpreter = std::move(pInterpreter);
+    m_pInterpreter->LoadModel();
 }
 
 CDeepLabv3::~CDeepLabv3()
 {
 }
 
-bool CDeepLabv3::Init(const std::string& strtModelPath)
-{
-    // Step 1. Load FaceNet Model
-#if SNPE_RUNTIME
-    return LoadModel(strtModelPath);
-#elif TFLite_RUNTIME
-
-    bool isSucess = LoadModel(strtModelPath);
-    cv::Size spatialDim = GetInputSpatialDim();
-
-    //m_InferWidth = spatialDim.width;
-    //m_InferHeight = spatialDim.height;
-
-    return isSucess;
-#else
-    return LoadModel("", strtModelPath);
-#endif
-}
-
 cv::Mat CDeepLabv3::Run(const cv::Mat& srcImg)
 {
-#if SNPE_RUNTIME
-    std::vector<int> vSize = {1,513,513,21};
-    std::unordered_map<std::string, cv::Mat> vNetOutput = Interpret(srcImg);
-#else
-    std::unordered_map<std::string, cv::Mat> vNetOutput = Interpret(srcImg);
-#endif
+    // TODO: output layer name 처리, unordered map?
+    std::unordered_map<std::string, cv::Mat> vNetOutput = m_pInterpreter->Interpret(srcImg);
+
     cv::Mat outputMat;
     if (vNetOutput.empty())
     {
@@ -107,7 +51,7 @@ cv::Mat CDeepLabv3::Run(const cv::Mat& srcImg)
     }
 #if SNPE_RUNTIME
     cv::Mat& outTensorMat = vNetOutput["ResizeBilinear_2:0"];
-    outTensorMat = outTensorMat.reshape(PASCAL_CLASSES, INPUT_HEIGHT);
+    outTensorMat = outTensorMat.reshape(PASCAL_CLASSES, 513); // TODO: remove magic number
     outputMat = ColorizeSegmentationHWC(outTensorMat);
 #elif TFLite_RUNTIME
     outputMat = ColorizeSegmentationHWC(vNetOutput["ResizeBilinear_2"]);
