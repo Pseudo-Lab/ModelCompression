@@ -8,6 +8,8 @@ CTfLiteInterpreter::CTfLiteInterpreter(const std::string& strWeightFilePath, con
 bool CTfLiteInterpreter::SetInputShape(int inWidth, int inHeight, int inChannels)
 {
     std::cout << "TFLite interpretr not support dynamic input shape\n";
+
+    return true;
 }
 
 bool CTfLiteInterpreter::SetDelegate(DELEGATE _delegate)

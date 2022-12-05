@@ -5,8 +5,8 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(BUILD_BOARD_MODE 0)
-set(BUILD_TFLITE_MODE 0)
+set(BUILD_BOARD_MODE 1)
+set(BUILD_TFLITE_MODE 1)
 set(BUILD_SNPE_MODE 0)
 
 # Set OpenCV Path
@@ -47,7 +47,8 @@ if (${BUILD_BOARD_MODE})
 
     set(CMAKE_C_COMPILER /usr/bin/aarch64-linux-gnu-gcc)
     set(CMAKE_CXX_COMPILER /usr/bin/aarch64-linux-gnu-g++)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -lm -lrt -fPIC -march=armv8-a")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -lm -lrt -fPIC")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -lm -lrt -fPIC -march=armv8-a")
 
 else()
     message(STATUS "Build Mode: PC")
@@ -86,6 +87,6 @@ include_directories(${OPENCV_INSTALL_PATH}/include/opencv4/opencv2)
 link_directories(${OPENCV_INSTALL_PATH}/lib)
 set(OPENCV_LIB_PACKAGE opencv_core opencv_highgui opencv_imgproc opencv_imgcodecs opencv_dnn opencv_videoio)
 
-add_executable(DeepLabv3 main.cpp DeepLabv3.cpp Interpreter/IInterpreter.cpp ${RUNTIME_SRC_PATH})
+add_executable(DeepLabv3 main.cpp DeepLabv3/DeepLabv3.cpp Interpreter/IInterpreter.cpp ${RUNTIME_SRC_PATH})
 target_link_libraries(DeepLabv3 rt ${OPENCV_LIB_PACKAGE} ${RUNTIME_LIB_PACKAGE})
 

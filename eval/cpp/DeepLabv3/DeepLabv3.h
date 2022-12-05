@@ -13,15 +13,12 @@
 #include <opencv2/dnn.hpp>
 #include <opencv2/ml.hpp>
 
-#include "Interpreter/IInterpreter.h"
+#include "../Interpreter/IInterpreter.h"
 
 class CDeepLabv3
 {
 public:
-    explicit CDeepLabv3(std::unique_ptr<IInterpreter> pInterpreter);
-    explicit CDeepLabv3(std::unique_ptr<IInterpreter> pInterpreter,
-                        const std::string& strWeightPath, const std::string& strConfigPath,
-                        int _inWidth, int _inHeight, int _inCh, cv::Scalar mean, double scale);
+    CDeepLabv3(std::unique_ptr<IInterpreter> pInterpreter);
 
     ~CDeepLabv3();
 

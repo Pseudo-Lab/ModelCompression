@@ -2,7 +2,7 @@
 
 #include "opencv2/opencv.hpp"
 
-#include "DeepLabv3.h"
+#include "DeepLabv3/DeepLabv3.h"
 #include "Interpreter/IInterpreter.h"
 
 #if SNPE_RUNTIME
@@ -17,17 +17,24 @@ static constexpr int INPUT_WIDTH = 513;
 static constexpr int INPUT_HEIGHT = 513;
 static constexpr int INPUT_CH = 3;
 
-
 static const cv::Scalar DEEPLAB_MEAN = cv::Scalar(127.5, 127.5, 127.5);
 static constexpr double DEEPLAB_SCALE = 0.007843;
 
-static const std::string SNPE_MODEL_FILE = "../../../models/dlc/deeplabv3_mnv2_dm05_pascal_trainval.dlc";
-static const std::string TFLITE_MODEL_FILE = "../../../models/tflite/deeplabv3_mnv2_dm05_pascal_trainval_int.tflite";
-static const std::string TF_MODEL_FILE = "../../../models/tf/deeplabv3_mnv2_dm05_pascal_trainval_opt.pb";
-
+static const std::string SNPE_MODEL_FILE = "../../../models/deeplabv3/dlc/deeplabv3_mnv2_dm05_pascal_trainval.dlc";
+#if BOARD
+static const std::string TFLITE_MODEL_FILE = "models/tflite/deeplabv3_mnv2_dm05_pascal_trainval_int.tflite";
+#else
+static const std::string TFLITE_MODEL_FILE = "../../../models/deeplabv3/tflite/deeplabv3_mnv2_dm05_pascal_trainval_fp32.tflite";
+#endif
+#if BOARD
+static const std::string TF_MODEL_FILE = "models/deeplabv3/tf/deeplabv3_mnv2_dm05_pascal_trainval_opt.pb";
+#else
+static const std::string TF_MODEL_FILE = "../../../models/deeplabv3/tf/deeplabv3_mnv2_dm05_pascal_trainval_opt.pb";
+#endif
 
 int main(int argc, char** argv)
 {
+    std::cout << "main0\n";
 
 #if SNPE_RUNTIME
     std::unique_ptr<IInterpreter> pInterpreter = std::make_unique<CSnpeInference>(SNPE_MODEL_FILE, "");
@@ -40,19 +47,21 @@ int main(int argc, char** argv)
     pInterpreter->SetInputMean(DEEPLAB_MEAN);
     pInterpreter->SetInputScale(DEEPLAB_SCALE);
 
+
+    //*
     std::unique_ptr<CDeepLabv3> pDeepLabv3 = std::make_unique<CDeepLabv3>(std::move(pInterpreter));
 
 
-    /* Test
-    cv::Mat srcImg = cv::imread("../../../res/deeplab1.png");
+    // Test
+    //cv::Mat srcImg = cv::imread("../../../res/deeplab1.png");
 
-    auto t1 = std::chrono::steady_clock::now();
-    cv::Mat maskMat = pDeepLabv3->Run(srcImg);
-    auto t2 = std::chrono::steady_clock::now();
-    auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
+    //auto t1 = std::chrono::steady_clock::now();
+    //cv::Mat maskMat = pDeepLabv3->Run(srcImg);
+    //auto t2 = std::chrono::steady_clock::now();
+    //auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
 
-    cv::imwrite("../res/result.png", maskMat);
-    //*/
+    //cv::imwrite("../res/result.png", maskMat);
+
 
     // PASCAL 2012
 #if BOARD
@@ -61,6 +70,7 @@ int main(int argc, char** argv)
     std::string strVocPath = "../../datasets/VOCdevkit/VOC2012";
 #endif
     pDeepLabv3->EvaluateVOC12Val(strVocPath);
+    //*/
 
     return 0;
 }

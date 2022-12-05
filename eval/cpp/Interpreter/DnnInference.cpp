@@ -8,9 +8,13 @@ CDnnInterpreter::CDnnInterpreter(const std::string& strWeightFilePath, const std
 
 bool CDnnInterpreter::SetInputShape(int inWidth, int inHeight, int inChannels)
 {
+    std::cout << "SetInputShape 1\n";
     m_inWidth =inWidth;
     m_inHeight =inHeight;
     m_inChannels =inChannels;
+    std::cout << "SetInputShape 2\n";
+
+    return true;
 }
 
 bool CDnnInterpreter::LoadModel()

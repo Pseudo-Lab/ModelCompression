@@ -22,18 +22,11 @@ cv::Vec3b ZERO_VEC = cv::Vec3b(0,0,0);
 
 CDeepLabv3::CDeepLabv3(std::unique_ptr<IInterpreter> pInterpreter)
 {
+    std::cout << "fuck1\n";
     m_pInterpreter = std::move(pInterpreter);
+    std::cout << "fuck2\n";
     m_pInterpreter->LoadModel();
 }
-
-CDeepLabv3::CDeepLabv3(std::unique_ptr<IInterpreter> pInterpreter,
-                       const std::string& strWeightPath, const std::string& strConfigPath,
-                       int _inWidth, int _inHeight, int _inCh, cv::Scalar mean, double scale)
-{
-    m_pInterpreter = std::move(pInterpreter);
-    m_pInterpreter->LoadModel();
-}
-
 CDeepLabv3::~CDeepLabv3()
 {
 }
