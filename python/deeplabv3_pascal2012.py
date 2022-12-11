@@ -17,7 +17,7 @@ def parsing_argument():
                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter    )
 
     parser.add_argument('--model_path', metavar='str', type=str, 
-                        default ='../../models/tflite/deeplabv3_mnv2_dm05_pascal_trainval_fp32.tflite', 
+                        default ='../../models/tflite/deeplabv3_mnv2_dm05_pascal_trainval_int.tflite', 
                         help='tflite model path')
     parser.add_argument('--db_path', metavar='str', type=str, 
                         default ='../datasets/VOCdevkit/VOC2012/', 
@@ -117,7 +117,7 @@ def main(args):
     simple_test(deeplab, "image3.jpg", "result.jpg")
 
     # PASCAL VOC 2021 validation
-    evaluation(deeplab, "/media/Data/Git/ModelCompression/eval/datasets/VOCdevkit/VOC2012/")
+    evaluation(deeplab, args.db_path)
 
 if __name__ == '__main__':
 

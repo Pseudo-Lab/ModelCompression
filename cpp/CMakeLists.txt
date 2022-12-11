@@ -44,9 +44,9 @@ if(USE_SNPE)
     unset(SNPE_PATH CACHE)
 
 
-message(STATUS "SNPE install Path: " ${SNPE_ROOT})
-message(STATUS "SNPE Lib. Path: " ${SNPE_LIB_ROOT})
-message(STATUS "====================================================================")
+    message(STATUS "SNPE install Path: " ${SNPE_ROOT})
+    message(STATUS "SNPE Lib. Path: " ${SNPE_LIB_ROOT})
+    message(STATUS "====================================================================")
 endif()
 
 if(USE_TFLITE)

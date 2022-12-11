@@ -6,8 +6,6 @@
 #include "Classification/MnistEval.h"
 #include "Classification/CifarEval.h"
 #include "Classification/Classification.h"
-//#include "CenterFace/CenterFace.h"
-//#include "MiDaS/MidasDepthEst.h"
 #include "Interpreter/IInterpreter.h"
 
 #if SNPE_RUNTIME
@@ -24,8 +22,8 @@ void RunCifar10Eval(std::unique_ptr<IInterpreter> pInterpreter,
                     const std::string& strMnistImageBinaryPath, const std::string& strMnistLabelBinaryPath);
 void RunClassification(std::unique_ptr<IInterpreter> pInterpreter,
                        const std::string& strImagePath, const std::string& strLabelPath);
-//void RunDeepLabv3();
-//void RunCenterFace();
+void RunDeepLabv3(std::unique_ptr<IInterpreter> pInterpreter, const std::string& strImagePath);
+void RunPascalVocEval(std::unique_ptr<IInterpreter> pInterpreter, const std::string& strPascalVocPath);
 
 enum class OPERATION_MODE
 {
@@ -42,17 +40,12 @@ int main(int argc, char** argv)
 {
     OPERATION_MODE mode = OPERATION_MODE::CIFAR10_EVAL;
     INTERPRETER interpreter = INTERPRETER::TFLite;
-    /* MNIST
-    std::string strModelPath ="../../../models/LeNet/pruned_model.tflite";
-    std::string strTestImagePath ="../../datasets/MNIST/t10k-images-idx3-ubyte";;
-    std::string strTestLabelPath ="../../datasets/MNIST/t10k-labels-idx1-ubyte";;
-    //*/
-    std::string strModelPath = "../../../models/MobileNet_pruned/model.tflite";
-    std::string strTestImagePath = "../../datasets/CIFAR10/cifar-10-batches-bin/test_batch.bin";
-    std::string strTestLabelPath = "../../datasets/CIFAR10/cifar-10-batches-bin/batches.meta.txt";
 
-    float inputScale = 1.0 / 255.0; // MNIST CIFAR10
-    //float inputScale = 1.0; // MobileNet pruned
+    std::string strModelPath;
+    std::string strTestImagePath;
+    std::string strTestLabelPath;
+
+    float inputScale = 1.0 / 255.0;
     cv::Scalar inputMean = cv::Scalar(0.0,0.0,0.0);
 
     for (int idx = 0; idx < argc - 1; idx++)
@@ -80,10 +73,6 @@ int main(int argc, char** argv)
                 mode = OPERATION_MODE::SEG_PASCAL12_EVAL;
             }
         }
-        if (strcmp(argv[idx], "-modelPath") == 0)
-        {
-            strModelPath = argv[idx + 1];
-        }
         if (strcmp(argv[idx], "-inputScale") == 0)
         {
             inputScale = atof(argv[idx + 1]);
@@ -92,7 +81,24 @@ int main(int argc, char** argv)
         {
             inputMean = cv::Scalar(atof(argv[idx + 1]),atof(argv[idx + 2]),atof(argv[idx + 3]));
         }
+
+        if (strcmp(argv[idx], "-modelPath") == 0)
+        {
+            strModelPath = argv[idx + 1];
+        }
+        if (strcmp(argv[idx], "-inputPath") == 0)
+        {
+            strTestImagePath = argv[idx + 1];
+        }
+        if (strcmp(argv[idx], "-labelPath") == 0)
+        {
+            strTestLabelPath = argv[idx + 1];
+        }
     }
+
+    std::cout << "Model Path: " << strModelPath << "\n";
+    std::cout << "image(DB) Path: " << strTestImagePath << "\n";
+    std::cout << "label Path: " << strTestLabelPath << "\n";
 
     // Load Model
     std::unique_ptr<IInterpreter> pInterpreter = std::make_unique<CTfLiteInterpreter>(strModelPath, "");
@@ -112,10 +118,10 @@ int main(int argc, char** argv)
             RunClassification(std::move(pInterpreter), strTestImagePath, strTestLabelPath);
             break;
         case OPERATION_MODE::SEGMENTATION:
-            RunClassification(std::move(pInterpreter), strTestImagePath, strTestLabelPath);
+            RunDeepLabv3(std::move(pInterpreter), strTestImagePath);
             break;
         case OPERATION_MODE::SEG_PASCAL12_EVAL:
-            RunClassification(std::move(pInterpreter), strTestImagePath, strTestLabelPath);
+            RunPascalVocEval(std::move(pInterpreter), strTestImagePath);
             break;
         default:
             std::cout << "Please set mode!!\n";
@@ -127,6 +133,11 @@ int main(int argc, char** argv)
 void RunMnistEval(std::unique_ptr<IInterpreter> pInterpreter,
                   const std::string& strMnistImageBinaryPath, const std::string& strMnistLabelBinaryPath)
 {
+    /* MNIST
+    std::string strModelPath ="../../../models/LeNet/pruned_model.tflite";
+    std::string strTestImagePath ="../../datasets/MNIST/t10k-images-idx3-ubyte";;
+    std::string strTestLabelPath ="../../datasets/MNIST/t10k-labels-idx1-ubyte";;
+    //*/
     std::unique_ptr<CMnistEval> pMnsitEval = std::make_unique<CMnistEval>(std::move(pInterpreter));
     pMnsitEval->EvaluateMnist(strMnistImageBinaryPath, strMnistLabelBinaryPath);
 }
@@ -137,79 +148,35 @@ void RunCifar10Eval(std::unique_ptr<IInterpreter> pInterpreter,
     /*
     std::string strModelPath = "../../../models/MobileNet_pruned/model.tflite";
     std::string strTestImagePath = "../../datasets/CIFAR10/cifar-10-batches-bin/test_batch.bin";
-    std::string strTestLabelPath = "../../datasets/CIFAR10/cifar-10-batches-bin/batches.meta.txt";
-
-    std::unique_ptr<IInterpreter> pInterpreter = std::make_unique<CTfLiteInterpreter>(strModelPath, "");
-
-    pInterpreter->SetInputShape(CIFAR10_DEFAULT_COLS, CIFAR10_DEFAULT_ROWS, CIFAR10_DEFAULT_CH);
-    pInterpreter->SetInputMean(cv::Scalar(0.0,0.0,0.0));
-    pInterpreter->SetInputScale(1.0/255.0);
-    pInterpreter->SetInputOrderRgb(true);
+    std::string strTestLabelPath= "../../datasets/CIFAR10/cifar-10-batches-bin/batches.meta.txt";
     //*/
     std::unique_ptr<CCifar10Eval> pCifarEval = std::make_unique<CCifar10Eval>(std::move(pInterpreter));
     pCifarEval->EvaluateCifar10(strMnistImageBinaryPath, strMnistLabelBinaryPath);
-
-
 }
 
 void RunClassification(std::unique_ptr<IInterpreter> pInterpreter,
                        const std::string& strImagePath, const std::string& strLabelPath)
 {
-    /*
-    std::string strModelPath = "../../../models/MobileNet/mobilenet_v1_1.0_224.tflite"; // scale 1/255
-    //std::string strModelPath = "../../../models/MobileNet/mbv1_100_90_12b4_684.tflite"; // scale 1
-    //std::string strTestImagePath = "../../datasets/test/grace_hopper.bmp";
-    std::string strTestImagePath = "../../datasets/test/Ryanair.jpg";
-    std::string strTestLabelPath = "../../datasets/test/labels.txt";
-
-    std::unique_ptr<IInterpreter> pInterpreter = std::make_unique<CTfLiteInterpreter>(strModelPath, "");
-
-    //pInterpreter->SetInputShape(CLS_DEFAULT_COLS, CLS_DEFAULT_ROWS, CLS_DEFAULT_CH);
-    pInterpreter->SetInputMean(cv::Scalar(0.0,0.0,0.0));
-    pInterpreter->SetInputScale(1.0/255.0);
-    //*/
-
     std::unique_ptr<CClassification> pClassiEval = std::make_unique<CClassification>(std::move(pInterpreter));
-
     pClassiEval->Run(strImagePath, strLabelPath);
 }
 
 void RunDeepLabv3(std::unique_ptr<IInterpreter> pInterpreter, const std::string& strImagePath)
 {
-
-    //static constexpr int INPUT_WIDTH = 513;
-    //static constexpr int INPUT_HEIGHT = 513;
-    //static constexpr int INPUT_CH = 3;
-    //
-    //static const cv::Scalar DEEPLAB_MEAN = cv::Scalar(127.5, 127.5, 127.5);
-    //static constexpr double DEEPLAB_SCALE = 0.007843;
-
-    //static const std::string TFLITE_MODEL_FILE = "../../../models/deeplabv3/tflite/deeplabv3_mnv2_dm05_pascal_trainval_fp32.tflite";
-    //std::unique_ptr<IInterpreter> pInterpreter = std::make_unique<CTfLiteInterpreter>(TFLITE_MODEL_FILE, "");
-
-    //pInterpreter->SetInputShape(INPUT_WIDTH, INPUT_HEIGHT, INPUT_CH);
-    //pInterpreter->SetInputMean(DEEPLAB_MEAN);
-    //pInterpreter->SetInputScale(DEEPLAB_SCALE);
-
-
-    //*
     std::unique_ptr<CDeepLabv3> pDeepLabv3 = std::make_unique<CDeepLabv3>(std::move(pInterpreter));
 
-    cv::Mat srcImg = cv::imread("../../../res/deeplab1.png");
+    cv::Mat srcImg = cv::imread(strImagePath);
 
     auto t1 = std::chrono::steady_clock::now();
     cv::Mat maskMat = pDeepLabv3->Run(srcImg);
     auto t2 = std::chrono::steady_clock::now();
     auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
 
-    //cv::imwrite("../res/result.png", maskMat);
+    cv::imwrite("result.png", maskMat);
 }
 
-void RunPascalVocEval(std::unique_ptr<IInterpreter> pInterpreter,
-                      const std::string& strPascalVocPath)
+void RunPascalVocEval(std::unique_ptr<IInterpreter> pInterpreter, const std::string& strPascalVocPath)
 {
-    //std::string strVocPath = "../../datasets/VOCdevkit/VOC2012";
-
     std::unique_ptr<CDeepLabv3> pDeepLabv3 = std::make_unique<CDeepLabv3>(std::move(pInterpreter));
     pDeepLabv3->EvaluateVOC12Val(strPascalVocPath);
 }
