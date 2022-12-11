@@ -72,6 +72,12 @@ void CTfLiteInterpreter::ShowSummery()
         return;
     }
 
+    bool isSaveOutLayerName = false;
+    if(m_vOutputLayerName.empty())
+    {
+        isSaveOutLayerName = true;
+    }
+
     std::cout << "-> tensors size: " << m_pInterpreter->tensors_size() << "\n";
     std::cout << "-> nodes size: " << m_pInterpreter->nodes_size() << "\n";
     std::cout << "-> inputs: " << m_pInterpreter->inputs().size() << "\n";
@@ -81,28 +87,53 @@ void CTfLiteInterpreter::ShowSummery()
         std::cout << "--> input(0) name: " << m_pInterpreter->GetInputName(iter) << "\n";
 
         auto inputDim = m_pInterpreter->tensor(m_pInterpreter->inputs()[iter])->dims;
-        std::cout << "--> input(" << iter << ") shape = ["
-                  << inputDim->data[0] << ", " << inputDim->data[1] << ", "
-                  << inputDim->data[2]<< ", " << inputDim->data[3] << "]\n";
+
+        std::cout << "--> input(" << iter << ") shape = [";
+        for(int q =0; q <inputDim->size; q++)
+        {
+            std::cout << inputDim->data[q];
+            if(q == inputDim->size-1)
+            {
+                std::cout << "]\n";
+            }
+            else
+            {
+                std::cout << ", ";
+            }
+        }
     }
 
     // Set Input Shape Info.
     auto inputDim = m_pInterpreter->tensor(m_pInterpreter->inputs()[0])->dims;
+
     m_inWidth = inputDim->data[2];
-    m_inHeight =inputDim->data[1];
-    m_inChannels =inputDim->data[3];
+    m_inHeight = inputDim->data[1];
+    m_inChannels = (inputDim->size ==4) ? inputDim->data[3] : 1;
 
     std::cout << "-> Outputs: " << m_pInterpreter->outputs().size() << "\n";
     for(int iter =0; iter <m_pInterpreter->outputs().size(); iter++)
     {
-        std::cout << "--> output(0) name: " << m_pInterpreter->GetOutputName(iter) << "\n";
-        m_vOutputLayerName.push_back(m_pInterpreter->GetOutputName(iter));
+        std::cout << "--> output(" <<iter <<") name: " << m_pInterpreter->GetOutputName(iter) << "\n";
+        if(isSaveOutLayerName)
+        {
+            m_vOutputLayerName.push_back(m_pInterpreter->GetOutputName(iter));
+        }
 
         auto outputDim = m_pInterpreter->tensor(m_pInterpreter->outputs()[iter])->dims;
 
-        std::cout << "--> output(" << iter << ") Shape = ["
-                  << outputDim->data[0] << ", " << outputDim->data[1] << ", "
-                  << outputDim->data[2]<< ", " << outputDim->data[3] << "]\n";
+        std::cout << "--> output(" << iter << ") Shape = [";
+        for(int q =0; q <outputDim->size; q++)
+        {
+            std::cout << outputDim->data[q];
+            if(q == outputDim->size-1)
+            {
+                std::cout << "]\n";
+            }
+            else
+            {
+                std::cout << ", ";
+            }
+        }
     }
 }
 std::unordered_map<std::string, cv::Mat> CTfLiteInterpreter::Interpret(const cv::Mat& srcImg)
@@ -134,13 +165,19 @@ std::unordered_map<std::string, cv::Mat> CTfLiteInterpreter::Interpret(const cv:
     for(int iter =0; iter <numOutputLayer; iter++)
     {
         TfLiteTensor* tfOutputTensor = m_pInterpreter->tensor(m_pInterpreter->outputs()[iter]);
-
         auto outputDim = tfOutputTensor->dims->data;
-        cv::Mat outputBlob(outputDim[1], outputDim[2], CV_32FC(outputDim[3]), tfOutputTensor->data.f);
 
+        cv::Mat outputBlob;
+        if(tfOutputTensor->dims->size <3)
+        {
+            outputBlob = cv::Mat(1, std::max(outputDim[1], outputDim[2]), CV_32F, tfOutputTensor->data.f);
+        }
+        else
+        {
+            outputBlob = cv::Mat(outputDim[1], outputDim[2], CV_32FC(outputDim[3]), tfOutputTensor->data.f);
+        }
         vRetTensor.insert(std::make_pair(tfOutputTensor->name, std::move(outputBlob)));
     }
-
     m_pInterpreter->ResetVariableTensors();
 
     return std::move(vRetTensor);
@@ -152,11 +189,25 @@ cv::Mat CTfLiteInterpreter::ConvertInputTensor(const cv::Mat& srcImg)
 
     cv::Mat targetImg = srcImg.clone();
 
-    cv::cvtColor(targetImg, targetImg, cv::COLOR_BGR2RGB);
-    targetImg.convertTo(targetImg, CV_32F);
-    targetImg = (targetImg - m_Mean) *m_scale;
+    if(m_inChannels == 1)
+    {
+        if(srcImg.channels() ==3)
+        {
+            cv::cvtColor(targetImg, targetImg, cv::COLOR_BGR2GRAY);
+        }
+        targetImg.convertTo(targetImg, CV_32F, m_scale);
+    }
+    else if(m_inChannels == 3)
+    {
+        if(m_isOrderRgb)
+        {
+            cv::cvtColor(targetImg, targetImg, cv::COLOR_BGR2RGB);
+        }
+        targetImg.convertTo(targetImg, CV_32F);
+        // DIM
+        targetImg = (targetImg - m_Mean) * m_scale;
+    }
     cv::resize(targetImg, targetImg, cv::Size(inputDim[2], inputDim[1]));
-
     return std::move(targetImg);
 }
 

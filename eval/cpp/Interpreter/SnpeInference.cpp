@@ -11,6 +11,9 @@ static const std::string RUNTIME_TYPE = "CPU";
 #endif
 
 
+// TODO: set input dim. automatically
+// TODO: store output layer names
+
 CSnpeInference::CSnpeInference(const std::string& strWeightFilePath, const std::string& strConfigFilePath)
         : IInterpreter(strWeightFilePath, strConfigFilePath)
 {

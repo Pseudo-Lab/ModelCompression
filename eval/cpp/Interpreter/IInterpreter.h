@@ -23,6 +23,7 @@ public:
     IInterpreter(const std::string& strWeightFilePath, const std::string& strConfigFilePath)
             : m_strWeightFilePath(strWeightFilePath), m_strConfigFilePath(strConfigFilePath),
               m_inWidth(0), m_inHeight(0), m_inChannels(0),
+              m_isOrderRgb(false),
               m_Mean(cv::Scalar()), m_scale(1),
               m_isLoadModel(false),
               m_delegate(DELEGATE::CPU)
@@ -38,7 +39,10 @@ public:
 
     void SetInputMean(cv::Scalar value);
     void SetInputScale(double scale);
+    void SetInputOrderRgb(bool isOrderRgb);
+
     void SetOutputLayerName(const std::vector<cv::String>& vStrLayerName);
+    std::vector<cv::String> GetOutputLayerName();
 
     std::vector<cv::String> m_vOutputLayerName;
 
@@ -50,6 +54,8 @@ protected:
     int m_inWidth;
     int m_inHeight;
     int m_inChannels;
+
+    bool m_isOrderRgb;
 
     double m_scale;
     cv::Scalar m_Mean;

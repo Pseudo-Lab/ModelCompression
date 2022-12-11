@@ -1,7 +1,3 @@
-//
-// Created by taeyup.song on 22. 4. 28.
-//
-
 #ifndef DEEPLABV3_H
 #define DEEPLABV3_H
 
@@ -27,11 +23,10 @@ public:
 
 
 private:
-    cv::Mat ColorizeSegmentationBCHW(const cv::Mat &score);
-    cv::Mat ColorizeSegmentationHWC(const cv::Mat &score);
+    cv::Mat ColorizeSegmentationBCHW(const cv::Mat& score);
+    cv::Mat ColorizeSegmentationHWC(const cv::Mat& score);
 
     std::unique_ptr<IInterpreter> m_pInterpreter;
 };
 
 #endif //DEEPLABV3_H
-
