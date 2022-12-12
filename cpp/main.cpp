@@ -133,11 +133,6 @@ int main(int argc, char** argv)
 void RunMnistEval(std::unique_ptr<IInterpreter> pInterpreter,
                   const std::string& strMnistImageBinaryPath, const std::string& strMnistLabelBinaryPath)
 {
-    /* MNIST
-    std::string strModelPath ="../../../models/LeNet/pruned_model.tflite";
-    std::string strTestImagePath ="../../datasets/MNIST/t10k-images-idx3-ubyte";;
-    std::string strTestLabelPath ="../../datasets/MNIST/t10k-labels-idx1-ubyte";;
-    //*/
     std::unique_ptr<CMnistEval> pMnsitEval = std::make_unique<CMnistEval>(std::move(pInterpreter));
     pMnsitEval->EvaluateMnist(strMnistImageBinaryPath, strMnistLabelBinaryPath);
 }
@@ -145,11 +140,6 @@ void RunMnistEval(std::unique_ptr<IInterpreter> pInterpreter,
 void RunCifar10Eval(std::unique_ptr<IInterpreter> pInterpreter,
                     const std::string& strMnistImageBinaryPath, const std::string& strMnistLabelBinaryPath)
 {
-    /*
-    std::string strModelPath = "../../../models/MobileNet_pruned/model.tflite";
-    std::string strTestImagePath = "../../datasets/CIFAR10/cifar-10-batches-bin/test_batch.bin";
-    std::string strTestLabelPath= "../../datasets/CIFAR10/cifar-10-batches-bin/batches.meta.txt";
-    //*/
     std::unique_ptr<CCifar10Eval> pCifarEval = std::make_unique<CCifar10Eval>(std::move(pInterpreter));
     pCifarEval->EvaluateCifar10(strMnistImageBinaryPath, strMnistLabelBinaryPath);
 }
@@ -180,68 +170,3 @@ void RunPascalVocEval(std::unique_ptr<IInterpreter> pInterpreter, const std::str
     std::unique_ptr<CDeepLabv3> pDeepLabv3 = std::make_unique<CDeepLabv3>(std::move(pInterpreter));
     pDeepLabv3->EvaluateVOC12Val(strPascalVocPath);
 }
-
-
-/*
-static const std::string CENTERFACE_MODEL_FILE = "../res/centerface_640.dlc";
-static constexpr int CENTERFACE_INPUT_WIDTH = 640;
-static constexpr int CENTERFACE_INPUT_HEIGHT = 480;
-static constexpr int CENTERFACE_INPUT_CH = 3;
-static const cv::Scalar_<float> CENTERFACE_MEAN = cv::Scalar_<float>(0., 0., 0.);
-static constexpr float CENTERFACE_SCALE = 1.;c constexpr int CENTERFACE_INPUT_HEIGHT = 480;
-static constexpr int CENTERFACE_INPUT_CH = 3;
-static const cv::Scalar_<float> CENTERFACE_MEAN = cv::Scalar_<float>(0., 0., 0.);
-static constexpr float CENTERFACE_SCALE = 1.;
-
-
-void RunCenterFace()
-{
-    std::unique_ptr<IInterpreter> pFaceDetInterpreter = std::make_unique<CSnpeInference>(CENTERFACE_MODEL_FILE, "");
-
-    pFaceDetInterpreter->SetInputShape(CENTERFACE_INPUT_WIDTH, CENTERFACE_INPUT_HEIGHT, CENTERFACE_INPUT_CH);
-    pFaceDetInterpreter->SetInputMean(CENTERFACE_MEAN);
-    pFaceDetInterpreter->SetInputScale(CENTERFACE_SCALE);
-
-    std::vector<cv::String> vstrOutputLayerName = {"537", "538", "539", "540"};
-    pFaceDetInterpreter->SetOutputLayerName(vstrOutputLayerName);
-
-
-    std::unique_ptr<CCenterFace> pFaceDetector = std::make_unique<CCenterFace>(std::move(pFaceDetInterpreter));
-
-    cv::Mat srcImg = cv::imread("../res/000388.jpg");
-    cv::Mat retImg = pFaceDetector->TestRun(srcImg);
-    cv::imwrite("../res/retImg.jpg", retImg);
-
-}
-//*/
-
-/*
-static constexpr int MIDAS_DEFAULT_IN_COLS = 384; // small 256
-static constexpr int MIDAS_DEFAULT_IN_ROWS = 384; // small 256
-static constexpr int MIDAS_DEFAULT_IN_CH = 3;
-
-static constexpr int NUM_NYUDEPTHV2_TEST_SET = 654;
-
-static cv::Scalar MIDAS_DEFAULT_MEAN = cv::Scalar(0.485, 0.456, 0.406);
-static cv::Scalar MIDAS_DEFAULT_STD = cv::Scalar(0.229, 0.224, 0.225);
-
-void RunMiDaSDepth()
-{
-
-    std::string strModelPath = "../res/lite-model_midas_v2_1_small_1_lite_1.tflite";
-    std::string strNyuDepthPath = "../res/DenseDepth";
-    std::string strSavePath = "../res/result";
-    bool isInvertScale = true;
-
-    std::unique_ptr<IInterpreter> pInterpreter = std::make_unique<CTfLiteInterpreter>(strModelPath, "");
-
-    pInterpreter->SetInputShape(MIDAS_DEFAULT_IN_COLS, MIDAS_DEFAULT_IN_ROWS, MIDAS_DEFAULT_IN_CH);
-    pInterpreter->SetInputMean(MIDAS_DEFAULT_MEAN);
-    pInterpreter->SetInputScale(MIDAS_DEFAULT_STD);
-
-    std::unique_ptr<> pDepthEstimator = std::make_unique<CMidasDepthEst>(std::move(pInterpreter));
-
-    pDepthEstimator->SetInvertedScale(isInvertScale);
-    pDepthEstimator->Evaluate(strNyuDepthPath, strSavePath, isInvertScale);
-    
-}//*/
