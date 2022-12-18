@@ -20,7 +20,7 @@ message(STATUS "================================================================
 # Set OpenCV install Path
 if( "${OPENCV_PATH}" STREQUAL "" )
     if (BUILD_AARCH64)
-        set(OPENCV_PATH /media/Data/lib/opencv412_aarch64/ CACHE PATH "Set OpenCV Install Path")
+        set(OPENCV_PATH /opt/opencv412_aarch64/ CACHE PATH "Set OpenCV Install Path")
     else()
         set(OPENCV_PATH /usr/local CACHE PATH "Set OpenCV Install Path")
     endif()
@@ -33,7 +33,7 @@ message(STATUS "================================================================
 # Set DNN Lib. Path
 if(USE_SNPE)
     if( "${SNPE_PATH}" STREQUAL "" )
-        set(SNPE_PATH "/media/Data/lib/snpe-1.66.0.3729/" CACHE STRING "SNPE install path")
+        set(SNPE_PATH "/opt/snpe-1.66.0.3729/" CACHE STRING "SNPE install path")
     endif()
     set(SNPE_ROOT ${SNPE_PATH})
     if (BUILD_AARCH64)
@@ -51,7 +51,7 @@ endif()
 
 if(USE_TFLITE)
     if( "${TF_PATH}" STREQUAL "" )
-        set(TF_PATH "/media/Data/lib/tensorflow_tflite_int8" CACHE STRING "TFLite install path")
+        set(TF_PATH "/opt/tensorflow_src" CACHE STRING "TFLite install path")
     endif()
     set(TFLITE_ROOT ${TF_PATH})
     unset(TF_PATH CACHE)
@@ -60,9 +60,9 @@ if(USE_TFLITE)
 
     if( "${TFLITE_LIB_PATH}" STREQUAL "" )
         if (BUILD_AARCH64)
-            set(TFLITE_LIB_PATH "/media/Data/lib/tflite_r2.10_cpp_lib_aarch64" CACHE STRING "TFLite lib. path")
+            set(TFLITE_LIB_PATH "/opt/tflite_r2.10_cpp_lib_aarch64" CACHE STRING "TFLite lib. path")
         else()
-            set(TFLITE_LIB_PATH "/media/Data/lib/tflite_r2.10_cpp_lib_x86" CACHE STRING "TFLite lib. path")
+            set(TFLITE_LIB_PATH "/opt/tflite_r2.10_cpp_lib_x86" CACHE STRING "TFLite lib. path")
         endif()
     endif()
     set(TFLITE_LIB_ROOT ${TFLITE_LIB_PATH})
@@ -70,7 +70,7 @@ if(USE_TFLITE)
     message(STATUS "TFLite Lib. Path: " ${TFLITE_LIB_ROOT})
 
     if( "${FLATBUFFER_PATH}" STREQUAL "" )
-        set(FLATBUFFER_PATH "/media/Data/lib/flatbuffers" CACHE STRING "flatbuffer lib. path")
+        set(FLATBUFFER_PATH "/opt/flatbuffers" CACHE STRING "flatbuffer lib. path")
     endif()
     set(FLATBUFFER_ROOT ${FLATBUFFER_PATH})
     unset(FLATBUFFER_PATH CACHE)
@@ -118,12 +118,17 @@ if(USE_SNPE)
     set(RUNTIME_SRC_PATH ${RUNTIME_SRC_PATH} Interpreter/SnpeInference.cpp)
 endif()
 
+
+# ADD source code
+set(TASK_SRC_PATH DeepLabv3/DeepLabv3.cpp)
+set(TASK_SRC_PATH ${TASK_SRC_PATH} Classification/Classification.cpp Classification/MnistEval.cpp Classification/CifarEval.cpp)
+
 include_directories(${OPENCV_INSTALL_PATH}/include/opencv4)
 include_directories(${OPENCV_INSTALL_PATH}/include/opencv4/opencv2)
 link_directories(${OPENCV_INSTALL_PATH}/lib)
 set(OPENCV_LIB_PACKAGE opencv_core opencv_highgui opencv_imgproc opencv_imgcodecs opencv_dnn opencv_videoio)
 
-add_executable(Evaluation main.cpp DeepLabv3/DeepLabv3.cpp Classification/Classification.cpp Classification/MnistEval.cpp Classification/CifarEval.cpp ${RUNTIME_SRC_PATH})
+add_executable(Evaluation main.cpp ${TASK_SRC_PATH} ${RUNTIME_SRC_PATH})
 target_link_libraries(Evaluation rt ${OPENCV_LIB_PACKAGE} ${RUNTIME_LIB_PACKAGE})
 
 unset(USE_TFLITE CACHE)

@@ -55,12 +55,24 @@
 
 ### (1) Classification
 
-- TBU
+| No. | Platform | Lib. (Runtime) | Model | Pruning Method | Accuracy | Average Processing Time | Model Size |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | PC | TFLite (XNNPACK) | [mobilenet_v1_1.0_224.tflite](https://storage.googleapis.com/download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_1.0_224.tgz) | X | 0.9759 | 28 msec | 16.9 Mb |
+| 2 | PC | TFLite (XNNPACK) | [mbv1_100_90_12b4_684.tflite](https://storage.googleapis.com/fast-convnets/tflite-models/mbv1_100_90_12b4_684.tflite) | pruned (0.9) | 0.9684 | 24 msec | 6.2 Mb |
+| 3 | RPI3 | TFLite (XNNPACK) | [mobilenet_v1_1.0_224.tflite](https://storage.googleapis.com/download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_1.0_224.tgz) | X | 0.9687 | 565 msec | 16.9 Mb |
+| 4 | RPI3 | TFLite (XNNPACK) | [mbv1_100_90_12b4_684.tflite](https://storage.googleapis.com/fast-convnets/tflite-models/mbv1_100_90_12b4_684.tflite) | strip_pruning (0.9) | 0.9692 | 309 msec | 6.2 Mb |
+
+
 
 ### (2) Semantic Segmentation: DeepLabv3
 
-- TBU
-
-### (3) Monocular Depth Estimation: MiDaS v2.1
-
-- TBU
+| No. | Platform | Lib. (Runtime) | Model | Quantization Method | Pruning Method | mIoU | Average Processing Time | Model Size |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | PC | TFLite(Python. XNNPACK) | [deeplabv3_mnv2_dm05_pascal_trainval_dynamic_fp32.tflite](https://drive.google.com/file/d/1uy17pDW-JLcMXLDpGACBKmKbrstK0oYx/view?usp=sharing) | X | X | 0.526275 | 96 msec | 2.8 Mb |
+| 2 | PC | TFLite(Python, XNNPACK) | [deeplabv3_mnv2_dm05_pascal_trainval_dynamic_int.tflite](https://drive.google.com/file/d/1MkHYyDcX_AVUX1CrrpCOga5xICNDvAaA/view?usp=share_link)| int | X | 0.525301 | 75 msec | 964.2 Kb |
+| 3 | PC | TFLite(C++, XNNPACK) | [deeplabv3_mnv2_dm05_pascal_trainval_dynamic_fp32.tflite](https://drive.google.com/file/d/1uy17pDW-JLcMXLDpGACBKmKbrstK0oYx/view?usp=sharing) | X | X | 0.585301 | 92 msec | 2.8 Mb |
+| 4 | PC | TFLite(C++, XNNPACK) | [deeplabv3_mnv2_dm05_pascal_trainval_dynamic_int.tflite](https://drive.google.com/file/d/1MkHYyDcX_AVUX1CrrpCOga5xICNDvAaA/view?usp=share_link) | int | X | 0.574437 | 71 msec | 964.2 Kb |
+| 5 | RPI3 | TFLite(C++, XNNPACK) | [deeplabv3_mnv2_dm05_pascal_trainval_dynamic_fp32.tflite](https://drive.google.com/file/d/1uy17pDW-JLcMXLDpGACBKmKbrstK0oYx/view?usp=sharing) | X | X | 0.585301 | 3176 msec | 2.8 Mb |
+| 6 | RPI3 | TFLite(C++, XNNPACK) | [deeplabv3_mnv2_dm05_pascal_trainval_dynamic_int.tflite](https://drive.google.com/file/d/1LZp6or_o3DpbtR-4eYp8LDdPQuxDHjxt/view?usp=share_link) | int | X | 0.574511 | 2278 msec | 964.2 Kb |
+| 7 | RB5 | SNPE (CPU) | [deeplabv3_mnv2_pascal_train_aug_2018_01_29_opt.dlc](https://drive.google.com/file/d/1fYG_DQ8sIChEb_BTagaLEWDyDbzSc5i6/view?usp=share_link) | X | X | 0.585294 | 413 msec | 2.9 Mb |
+| 8 | RB5 | SNPE (GPU) | [deeplabv3_mnv2_pascal_train_aug_2018_01_29_opt.dlc](https://drive.google.com/file/d/1fYG_DQ8sIChEb_BTagaLEWDyDbzSc5i6/view?usp=share_link) | X | X | 0.585294 | 383 msec | 2.9 Mb |
