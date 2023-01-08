@@ -174,7 +174,8 @@ std::unordered_map<std::string, cv::Mat> CTfLiteInterpreter::Interpret(const cv:
         }
         else
         {
-            outputBlob = cv::Mat(outputDim[1], outputDim[2], CV_32FC(outputDim[3]), tfOutputTensor->data.f);
+            int outputCh = (outputDim[3] ==0) ? 1 : outputDim[3];
+            outputBlob = cv::Mat(outputDim[1], outputDim[2], CV_32FC(outputCh), tfOutputTensor->data.f);
         }
         vRetTensor.insert(std::make_pair(tfOutputTensor->name, std::move(outputBlob)));
     }
